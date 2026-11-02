@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.env
+.env.*
+# Rå kildefiler (PDF/XLSX, ca. 54 MB) og arbeidsskript – ikke del av repoet. Se README.
+kilder/
