@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="nb" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Carboncut – skisser v1 (klikkbar prototype)</title>
+<style>
+:root{
+  --bg:#f8fafc; --card:#ffffff; --fg:#0f172a; --muted:#475569; --border:#64748b; --edge:#cbd5e1;
+  --primary:#065f46; --primary-fg:#ffffff; --primary-soft:#d1fae5; --primary-soft-fg:#064e3b;
+  --warn-bg:#fef3c7; --warn-fg:#78350f; --warn-edge:#b45309;
+  --bad:#b91c1c; --bad-bg:#fee2e2; --bad-fg:#7f1d1d;
+  --good:#065f46; --bar-you:#065f46; --bar-ref:#475569;
+  --banner-bg:#fbbf24; --banner-fg:#451a03; --focus:#1d4ed8; --shadow:0 1px 2px rgba(15,23,42,.08);
+  --radius:12px;
+}
+:root[data-theme="dark"]{
+  --bg:#0b1220; --card:#121c2f; --fg:#f1f5f9; --muted:#cbd5e1; --border:#8294ad; --edge:#33425c;
+  --primary:#34d399; --primary-fg:#022c22; --primary-soft:#0b4a39; --primary-soft-fg:#d1fae5;
+  --warn-bg:#3b2a07; --warn-fg:#fde68a; --warn-edge:#d97706;
+  --bad:#fca5a5; --bad-bg:#4a1717; --bad-fg:#fecaca;
+  --good:#6ee7b7; --bar-you:#34d399; --bar-ref:#94a3b8;
+  --focus:#93c5fd; --shadow:none;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.shell{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+.banner{background:var(--banner-bg);color:var(--banner-fg);padding:10px 14px;text-align:center;font-weight:700;font-size:15px;line-height:1.3}
+.appbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--edge);background:var(--card)}
+.brand{flex:1;font-size:21px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.brand svg{color:var(--primary)}
+.seg{display:inline-flex;border:2px solid var(--border);border-radius:10px;overflow:hidden}
+.seg button{min-width:48px;min-height:48px;padding:0 10px;background:transparent;border:0;font-weight:700;font-size:15px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--primary);color:var(--primary-fg)}
+.iconbtn{min-width:48px;min-height:48px;border:2px solid var(--border);border-radius:10px;background:transparent;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:15px;padding:0 8px}
+main{flex:1;padding:16px 16px 120px}
+h1{font-size:26px;line-height:1.2;margin:4px 0 6px;letter-spacing:-.01em}
+h2{font-size:19px;margin:0 0 8px}
+h3{font-size:16px;margin:18px 0 8px;color:var(--muted);text-transform:none}
+p{margin:0 0 10px}
+.muted{color:var(--muted)}
+.small{font-size:15px}
+.card{background:var(--card);border:1px solid var(--edge);border-radius:var(--radius);padding:16px;margin:0 0 14px;box-shadow:var(--shadow)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:56px;padding:0 18px;border-radius:var(--radius);border:2px solid var(--primary);background:var(--primary);color:var(--primary-fg);font-weight:800;font-size:19px;cursor:pointer;text-align:center}
+.btn.secondary{background:transparent;color:var(--fg);border-color:var(--border)}
+.btn.small{min-height:48px;font-size:16px;width:auto;padding:0 14px}
+.btn.hero{min-height:72px;font-size:22px}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{border:1px solid var(--edge);border-radius:10px;padding:10px 12px;background:var(--bg)}
+.stat .v{font-size:26px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:14px;color:var(--muted)}
+.stat.wide{grid-column:1/-1}
+.unit{font-size:14px;font-weight:600;color:var(--muted)}
+.tag{display:inline-block;font-size:13px;font-weight:700;padding:2px 8px;border-radius:999px;border:1.5px solid var(--border);color:var(--fg);background:transparent;vertical-align:middle}
+.tag.ex{border-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-fg)}
+.tag.dir{border-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-fg)}
+.tag.miss{border-style:dashed;color:var(--muted)}
+.trip{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--edge)}
+.trip:first-child{border-top:0}
+.trip .ic{flex:none;width:44px;height:44px;border-radius:10px;background:var(--primary-soft);color:var(--primary-soft-fg);display:flex;align-items:center;justify-content:center}
+.trip .body{flex:1;min-width:0}
+.trip .t{font-weight:700}
+.trip .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.neg{color:var(--bad);font-weight:700}
+.pos{color:var(--good);font-weight:700}
+/* Steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 14px;padding:0;list-style:none}
+.steps li{border-top:6px solid var(--edge);padding-top:6px;font-size:14px;font-weight:600;color:var(--muted)}
+.steps li[aria-current="step"]{border-color:var(--primary);color:var(--fg);font-weight:800}
+.steps li.done{border-color:var(--primary)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
+.tile{min-width:0;position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:6px;min-height:92px;padding:12px;border-radius:var(--radius);border:2px solid var(--border);background:var(--card);cursor:pointer;text-align:left}
+.tile .name{overflow-wrap:anywhere;hyphens:auto;font-weight:800;font-size:17px;line-height:1.2}
+.tile .sub{font-size:13.5px;color:var(--muted);line-height:1.25}
+.tile svg{color:var(--primary)}
+.tile[aria-pressed="true"]{border-color:var(--primary);border-width:3px;padding:11px;background:var(--primary-soft);color:var(--primary-soft-fg)}
+.tile[aria-pressed="true"] .sub{color:var(--primary-soft-fg)}
+.tile[aria-pressed="true"]::after{content:"✓";position:absolute;top:6px;right:10px;font-weight:900;font-size:20px}
+.tile[aria-disabled="true"]{border-style:dashed;background:var(--bg);cursor:not-allowed}
+.tile[aria-disabled="true"] svg,.tile[aria-disabled="true"] .name{opacity:.6}
+.tile.wide{grid-column:1/-1;min-height:72px;flex-direction:row;align-items:center;gap:12px}
+.notice{border-radius:10px;border:2px solid var(--warn-edge);background:var(--warn-bg);color:var(--warn-fg);padding:10px 12px;margin:0 0 12px;font-size:16px}
+.notice.bad{border-color:var(--bad);background:var(--bad-bg);color:var(--bad-fg)}
+.field label,.lbl{display:block;font-weight:700;margin:0 0 6px}
+.inp{display:flex;align-items:stretch;border:2px solid var(--border);border-radius:var(--radius);background:var(--card);overflow:hidden}
+.inp input{flex:1;min-width:0;min-height:60px;border:0;background:transparent;padding:0 14px;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.inp input:focus-visible{outline:none}
+.inp:focus-within{outline:3px solid var(--focus);outline-offset:2px}
+.inp .u{display:flex;align-items:center;padding:0 14px;font-weight:700;color:var(--muted);border-left:2px solid var(--edge)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{min-height:48px;min-width:56px;padding:0 14px;border-radius:999px;border:2px solid var(--border);background:transparent;font-weight:700;cursor:pointer}
+.segcard{border:1px solid var(--edge);border-radius:var(--radius);padding:14px;margin:0 0 12px;background:var(--card)}
+.segtop{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.segtop .n{flex:1;font-weight:800}
+.modechip{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 10px;border-radius:10px;background:var(--primary-soft);color:var(--primary-soft-fg);font-weight:800;flex:1}
+.switch{display:flex;align-items:center;gap:12px;min-height:56px;width:100%;padding:8px 14px;border:2px solid var(--border);border-radius:var(--radius);background:var(--card);cursor:pointer;text-align:left;font-weight:700}
+.switch .track{flex:none;width:52px;height:30px;border-radius:999px;border:2px solid var(--border);position:relative;background:transparent}
+.switch .track::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--border);transition:left .12s}
+.switch[aria-checked="true"] .track{background:var(--primary);border-color:var(--primary)}
+.switch[aria-checked="true"] .track::after{left:25px;background:var(--primary-fg)}
+.radios{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.radios button{min-height:56px;border:2px solid var(--border);border-radius:var(--radius);background:var(--card);font-weight:700;cursor:pointer}
+.radios button[aria-checked="true"]{border-color:var(--primary);border-width:3px;background:var(--primary-soft);color:var(--primary-soft-fg)}
+.actionbar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--card);border-top:1px solid var(--edge);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+.actionbar .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
+.actionbar .hint{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0;min-height:1.2em}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--card);border-top:1px solid var(--edge);padding-bottom:env(safe-area-inset-bottom)}
+.tabbar .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr}
+.tabbar button{min-height:60px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:700;font-size:14px;cursor:pointer;border-top:4px solid transparent;color:var(--muted)}
+.tabbar button[aria-current="page"]{color:var(--fg);border-top-color:var(--primary)}
+.big{font-size:56px;line-height:1;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.bars{margin:14px 0 4px}
+.barrow{margin:0 0 12px}
+.barrow .cap{display:flex;justify-content:space-between;gap:8px;font-weight:700;font-size:15px;margin:0 0 4px}
+.bar{height:22px;border-radius:6px;background:var(--bg);border:1px solid var(--edge);overflow:hidden}
+.bar i{display:block;height:100%;min-width:2px}
+.save{display:flex;align-items:center;gap:10px;border-radius:10px;padding:12px;font-weight:800;font-size:18px}
+.save.ok{background:var(--primary-soft);color:var(--primary-soft-fg)}
+.save.bad{background:var(--bad-bg);color:var(--bad-fg)}
+.toast{position:fixed;left:12px;right:12px;bottom:84px;z-index:9;max-width:536px;margin:0 auto;background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:10px;font-weight:700}
+table.src{width:100%;border-collapse:collapse;font-size:15px}
+table.src th{text-align:left;padding:8px;border-bottom:2px solid var(--border);vertical-align:bottom;font-size:13.5px;color:var(--muted)}
+table.src td{padding:8px;border-bottom:1px solid var(--edge);vertical-align:top}
+table.src tr.miss td{color:var(--muted)}
+@media (max-width:700px){
+  table.src,table.src tbody,table.src tr,table.src td{display:block;width:100%}
+  table.src thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.src tr{border:1px solid var(--edge);border-radius:var(--radius);padding:10px 12px;margin:0 0 12px;background:var(--card)}
+  table.src td{border:0;padding:3px 0}
+  table.src td[data-l]::before{content:attr(data-l) ": ";font-weight:700;color:var(--muted)}
+  table.src td.mode{font-size:18px;font-weight:800;padding-bottom:6px}
+  table.src td.mode::before{content:""}
+}
+@media (min-width:701px){.shell{max-width:980px}.actionbar .in,.tabbar .in{max-width:980px}main{padding-left:24px;padding-right:24px}.narrow{max-width:560px}}
+details summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:700}
+ul.rules{padding-left:20px;margin:0 0 10px}
+ul.rules li{margin:0 0 8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell" id="root"></div>
+<script>
+/* ===== Data: generert fra calc/src/factors.ts (faktorversjon 1, CSV v2). Ikke redigér for hånd. ===== */
+const DATA = {"FACTOR_VERSION": 1, "FACTORS": [{"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "0 er en modellantakelse i VegLCA, ikke en full LCA (CSV: usikker)", "status": "dokumentert", "occupancyBasis": "ikke relevant (1 person)", "mode": "walking", "value": 0, "csvId": "W1", "source": "Statens vegvesen VegLCA, rad «Gå sykkel»", "edition": "VegLCA v6.03 (11.02.2026; filen sist endret 15.04.2026 på vegvesen.no)", "sourceDate": "2026-02-11"}, {"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "0 er en modellantakelse i VegLCA, ikke en full LCA (CSV: usikker)", "status": "dokumentert", "occupancyBasis": "ikke relevant (1 person)", "mode": "bicycle", "value": 0, "csvId": "SY1", "source": "Statens vegvesen VegLCA, rad «Gå sykkel»", "edition": "VegLCA v6.03 (11.02.2026; filen sist endret 15.04.2026 på vegvesen.no)", "sourceDate": "2026-02-11"}, {"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Usikker: norsk sekundærkilde, utenlandsk primærkilde", "status": "dokumentert", "occupancyBasis": "per pkm; belegg ikke oppgitt (1 person pr sparkesykkel)", "mode": "e_scooter", "value": 0.061, "csvId": "S1", "source": "TØI Tiltakskatalog «Delte elsparkesykler» (siterer ITF/OECD 2024), delt sparkesykkel, sentralt anslag", "edition": "Tiltakskatalogen rev. 2026; ITF/OECD «Greener micromobility» 2024", "sourceDate": "2026-11-02"}, {"factorVersion": 1, "unit": "kg_co2e_per_vkm", "vehicleOccupancy": 1, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Per kjøretøy-km, 1 person i bilen", "status": "dokumentert", "occupancyBasis": "1 person pr bil (CTO)", "mode": "electric_car", "value": 0.07727, "csvId": "E2", "source": "Statens vegvesen VegLCA, fane «Persontransport» (beregnet etter VegLCAs formel), Bil (elbil)", "edition": "VegLCA v6.03 (11.02.2026; filen sist endret 15.04.2026 på vegvesen.no)", "sourceDate": "2026-02-11"}, {"mode": "hybrid_car", "factorVersion": 1, "value": null, "unit": "kg_co2e_per_vkm", "vehicleOccupancy": null, "occupancyBasis": null, "source": null, "edition": null, "sourceDate": null, "retrievedDate": null, "lifecycle": null, "note": "Ingen godkjent kilde (DESNZ avvist av CTO). Vestforsk 2010-kandidater er ikke godkjent.", "status": "mangler_kilde", "csvId": "H1/H2"}, {"factorVersion": 1, "unit": "kg_co2e_per_vkm", "vehicleOccupancy": 1, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Per kjøretøy-km, 1 person i bilen", "status": "dokumentert", "occupancyBasis": "1 person pr bil (CTO)", "mode": "gasoline_car", "value": 0.25691, "csvId": "G3", "source": "Beregnet: Miljødirektoratet 0,141 kg/vkm (direkte, 2023) + oppstrøm (VegLCA E10) + bilens slitasje (VegLCA/ecoinvent)", "edition": "Miljødirektoratet 2023/NIR 2025; VegLCA v6.03 (11.02.2026)", "sourceDate": "2025 / 2026-02-11"}, {"factorVersion": 1, "unit": "kg_co2e_per_vkm", "vehicleOccupancy": 1, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Per kjøretøy-km, 1 person i bilen", "status": "dokumentert", "occupancyBasis": "1 person pr bil (CTO)", "mode": "diesel_car", "value": 0.27575, "csvId": "D2", "source": "Beregnet: Miljødirektoratet 0,146 kg/vkm (direkte, 2023) + oppstrøm (VegLCA veidiesel B20) + bilens slitasje (VegLCA/ecoinvent)", "edition": "Miljødirektoratet 2023/NIR 2025; VegLCA v6.03 (11.02.2026)", "sourceDate": "2025 / 2026-02-11"}, {"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Livsløp (drivstoff + slitasje); belegg 25,2 % (J70, kilde Ruter)", "status": "dokumentert", "occupancyBasis": "25,2 % (J70)", "mode": "city_bus", "value": 0.1107, "csvId": "BU2", "source": "Statens vegvesen VegLCA, fane «Persontransport» (beregnet etter VegLCAs formel), Buss (lokal/by)", "edition": "VegLCA v6.03 (11.02.2026; filen sist endret 15.04.2026 på vegvesen.no)", "sourceDate": "2026-02-11"}, {"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Livsløp (drivstoff + slitasje); belegg 50 % (J71, kilde Vy årsrapport)", "status": "dokumentert", "occupancyBasis": "50 % (J71)", "mode": "regional_bus", "value": 0.04146, "csvId": "BU4", "source": "Statens vegvesen VegLCA, fane «Persontransport» (beregnet etter VegLCAs formel), Buss (region/ekspress)", "edition": "VegLCA v6.03 (11.02.2026; filen sist endret 15.04.2026 på vegvesen.no)", "sourceDate": "2026-02-11"}, {"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Lav presisjon; belegg 31,8 % (J74)", "status": "dokumentert", "occupancyBasis": "31,8 % (J74)", "mode": "electric_train", "value": 0.0048, "csvId": "T2", "source": "Statens vegvesen VegLCA, fane «Persontransport» (beregnet etter VegLCAs formel), Tog (el)", "edition": "VegLCA v6.03 (11.02.2026; filen sist endret 15.04.2026 på vegvesen.no)", "sourceDate": "2026-02-11"}, {"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Belegg 35,5 % (J75)", "status": "dokumentert", "occupancyBasis": "35,5 % (J75)", "mode": "diesel_train", "value": 0.08769, "csvId": "DT2", "source": "Statens vegvesen VegLCA, fane «Persontransport» (beregnet etter VegLCAs formel), Tog (diesel)", "edition": "VegLCA v6.03 (11.02.2026; filen sist endret 15.04.2026 på vegvesen.no)", "sourceDate": "2026-02-11"}, {"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Beregnet; dieselandel er utledet, ikke publisert", "status": "dokumentert", "occupancyBasis": "el 31,8 % (J74) / diesel 35,5 % (J75)", "mode": "train_unknown", "value": 0.01184, "csvId": "TU2", "source": "Beregnet: vektet VegLCA el-/diesel-tog med dieselandel 0,0849 utledet fra SSB 2019 (0,0058)", "edition": "VegLCA v6.03 (11.02.2026); SSB 08.12.2020", "sourceDate": "2026-02-11 / 2020-12-08"}, {"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": true, "note": "Livsløp med høydeeffekt ×1,8 på forbrenningsdelen; belegg 70 % (J78)", "status": "dokumentert", "occupancyBasis": "70 % (J78)", "mode": "airplane", "value": 0.27823, "csvId": "A5", "source": "Beregnet: VegLCA fly livsløp + (1,8 − 1) × VegLCA direkte (høydeeffekt ×1,8, CICERO 2016-05)", "edition": "VegLCA v6.03 (11.02.2026); CICERO Report 2016-05", "sourceDate": "2026-02-11 / 2016-05"}, {"factorVersion": 1, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "retrievedDate": "2026-11-02", "lifecycle": false, "note": "bare direkte utslipp. Gjelder Ruters kollektivbåter i Oslofjorden, ikke bilferge/hurtigbåt.", "status": "dokumentert", "occupancyBasis": "ikke oppgitt (Ruters pkm)", "mode": "ferry", "value": 0.111, "csvId": "F1", "source": "Ruter årsrapport 2025, E1 Klimaendringer: båt (kg fossilt CO2e/pkm)", "edition": "Årsrapport 2025", "sourceDate": "2026"}, {"mode": "other", "factorVersion": 1, "value": null, "unit": "kg_co2e_per_pkm", "vehicleOccupancy": null, "occupancyBasis": null, "source": null, "edition": null, "sourceDate": null, "retrievedDate": null, "lifecycle": null, "note": "Udefinert kategori; ingen norsk kilde.", "status": "mangler_kilde", "csvId": "O1"}], "MODE_LABELS": {"walking": {"nb": "Gange", "en": "Walking"}, "bicycle": {"nb": "Sykkel", "en": "Bicycle"}, "e_scooter": {"nb": "Elsparkesykkel", "en": "E-scooter"}, "electric_car": {"nb": "Elbil", "en": "Electric car"}, "hybrid_car": {"nb": "Hybridbil", "en": "Hybrid car"}, "gasoline_car": {"nb": "Bensinbil", "en": "Gasoline car"}, "diesel_car": {"nb": "Dieselbil", "en": "Diesel car"}, "city_bus": {"nb": "Buss (by)", "en": "Bus (city)"}, "regional_bus": {"nb": "Buss (region/ekspress)", "en": "Bus (regional/express)"}, "electric_train": {"nb": "Elektrisk tog", "en": "Electric train"}, "diesel_train": {"nb": "Dieseltog", "en": "Diesel train"}, "train_unknown": {"nb": "Tog (ukjent type)", "en": "Train (unknown type)"}, "airplane": {"nb": "Fly", "en": "Airplane"}, "ferry": {"nb": "Ferje/båt", "en": "Ferry or boat"}, "other": {"nb": "Annet", "en": "Other"}, "home_office": {"nb": "Hjemmekontor", "en": "Home office"}}, "REFERENCE_CAR": {"kgCo2ePerKm": 0.25691, "vehicleOccupancy": 1, "occupancyBasis": "1 person pr bil (CTO)", "source": "Referansebil bensin: beregnet av Miljødirektoratet 2023 + VegLCA (samme som gasoline_car)", "edition": "Miljødirektoratet 2023/NIR 2025; VegLCA v6.03 (11.02.2026)", "sourceDate": "2025 / 2026-02-11", "retrievedDate": "2026-11-02", "lifecycle": true, "factorVersion": 1, "status": "dokumentert", "csvId": "R3"}};
+</script>
+<script>
+"use strict";
+const FACTORS = DATA.FACTORS, REF = DATA.REFERENCE_CAR, FV = DATA.FACTOR_VERSION;
+const factorOf = m => FACTORS.find(f => f.mode === m);
+const isOk = m => { const f = factorOf(m); return !!f && f.status === "dokumentert" && f.value != null; };
+/* Effektiv kg CO2e per personkm: bil er per kjøretøy-km med 1 person => verdi / belegg (=1), som i calc.ts */
+const perPkm = m => { const f = factorOf(m); return f.unit === "kg_co2e_per_vkm" ? f.value / f.vehicleOccupancy : f.value; };
+const REFKM = REF.kgCo2ePerKm;
+
+/* ===== i18n ===== */
+const MODE_NAME = {
+  nb: { city_bus:"Bybuss", regional_bus:"Regional-/ekspressbuss", ferry:"Ferje/båt", train_unknown:"Tog (ukjent type)" },
+  en: { city_bus:"City bus", regional_bus:"Regional / express bus", ferry:"Ferry or boat", train_unknown:"Train (unknown type)" }
+};
+const modeName = (m, lang) => (MODE_NAME[lang] && MODE_NAME[lang][m]) || (m === "home_office" ? (lang==="nb"?"Hjemmekontor":"Home office") : DATA.MODE_LABELS[m][lang]);
+const T = {
+  nb: {
+    banner:"Testversjon – estimerte tall, faktorversjon "+FV,
+    tagline:"Estimer utslipp fra reiser, sammenlignet med en bensinbil med én person.",
+    theme:"Mørk modus", themeOn:"Lys modus", langLabel:"Språk", themeLabel:"Visning",
+    tabHome:"Oversikt", tabMethod:"Metode",
+    register:"Registrer tur", overview:"Oversikt", overviewEx:"Eksempeldata i prototypen",
+    totalEm:"Estimert utslipp, totalt", totalSave:"Estimert besparelse mot bensinbil", trips:"Turer", tripsN:n=>n+(n===1?" tur":" turer"),
+    latest:"Siste turer", example:"Eksempel", noTrips:"Ingen turer ennå. Trykk «Registrer tur».", clearAll:"Slett alle turer", clearConfirm:"Trykk igjen for å slette alle",
+    estKg:"estimert kg CO₂e", estKgShort:"estimert kg CO₂e", saveWord:"besparelse", higher:"høyere enn bensinbil",
+    s1:"Reisemåte", s2:"Avstand", s3:"Resultat", step:(i,n)=>"Steg "+i+" av "+n,
+    s1h:"Hvordan reiste du?", s1hSeg:n=>"Reisemåte for delstrekning "+n,
+    gFoot:"Til fots og lett", gCar:"Bil", gPublic:"Kollektiv", gAir:"Fly og annet", gNot:"Ikke en reise",
+    carSub:"per bil, 1 person", missing:"Mangler kilde", directOnly:"Bare direkte utslipp", noSel:"Velg en reisemåte for å gå videre.",
+    missingMsg:n=>n+" mangler kilde i faktorversjon "+FV+" og kan ikke brukes i beregningen. Se fanen Metode.",
+    ferryMsg:"Ferje/båt: bare direkte utslipp (ikke livsløp). Tallet gjelder Ruters kollektivbåter i Oslofjorden, ikke bilferge eller hurtigbåt.",
+    homeSub:"Unngått pendling", homeMsg:"Hjemmekontor regnes som unngått pendling med bensinbil (1 person). Ingen fysisk reise.",
+    s2h:"Hvor langt?", s2hHome:"Hvor langt er pendlingen?", leg:n=>"Delstrekning "+n, change:"Bytt", remove:"Fjern", addLeg:"Legg til delstrekning",
+    km:"km", distance:"Avstand", commute:"Pendleavstand, én vei", oneWay:"Én vei", roundTrip:"Tur-retur", returnTrip:"Tur-retur", returnSub:"Alle delstrekninger dobles",
+    total:"Totalt", avoided:"Unngått pendling", reset:"Nullstill", needKm:"Skriv inn km større enn 0 for alle delstrekninger.", needKmHome:"Skriv inn km større enn 0.",
+    s3h:"Estimert utslipp for turen", s3hHome:"Estimert effekt av hjemmekontor", yourTrip:"Din tur", yourDay:"Hjemmekontor", refCar:"Bensinbil, 1 person", saving:"Besparelse mot bensinbil",
+    savingNeg:"Turen gir høyere estimert utslipp enn bensinbilen.", savingPos:"Turen gir lavere estimert utslipp enn bensinbilen.", savingHome:"Unngått utslipp fra pendling med bensinbil.",
+    breakdown:"Slik er det regnet", factorWord:"faktor", perKm:"estimert kg CO₂e per km", perPkm:"per personkm", perVkm:"per kjøretøy-km, 1 person",
+    desc:"Beskrivelse (valgfri)", descPh:"F.eks. jobbreise", howCalc:"Hvordan er dette regnet? Se Metode", factorVer:"Faktorversjon",
+    back:"Tilbake", cancel:"Avbryt", next:"Neste", saveTrip:"Lagre tur", saved:"Tur lagret (bare i prototypen).",
+    mTitle:"Metode og kilder", mIntro:"Tallene er estimater basert på norske kilder, og noen er egne regnestykker på flere kilder. De er ikke verifisert og gir ingen garanti for faktisk miljøeffekt.",
+    mFactor:"Faktorversjon "+FV+" = utslippsfaktorer_YTM (v2, 02.11.2026), godkjent av CTO.",
+    rules:"Regler",
+    r1:"<b>Utslipp</b> = avstand × faktor per delstrekning. Tur-retur dobler avstanden. Tall rundes bare ved visning.",
+    r2:"<b>Referanse</b> = total avstand × bensinbil ("+REFKM.toLocaleString("nb-NO")+" estimert kg CO₂e per kjøretøy-km, 1 person i bilen). Besparelse = referanse − utslipp, og kan være negativ.",
+    r3:"<b>Bil = 1 person.</b> Bilfaktorene gjelder føreren alene. Antall personer kan ikke velges i denne versjonen.",
+    r4:"<b>Hjemmekontor</b> = unngått pendling regnet med bensinbil på pendleavstanden. Utslipp settes til 0.",
+    r5:"<b>Livsløp</b> er grunnlaget for alle faktorer, unntatt <b>ferje/båt</b>, som bare har direkte utslipp.",
+    r6:"<b>Fly</b> er regnet med høydeeffekt (×1,8 på forbrenningsdelen).",
+    r7:"Øvrige transportformer bruker kildens eget belegg (f.eks. bybuss 25,2 %, regional-/ekspressbuss 50 %, fly 70 %).",
+    r8:"Transportformer uten godkjent kilde står som «mangler kilde» og kan ikke velges.",
+    exTitle:"Eksempel på utregning", exText:"Eksempel: elbil, 10 km",
+    srcTitle:"Kildetabell", th:{mode:"Transportform",val:"Verdi",unit:"Enhet",scope:"Omfang",occ:"Belegg",src:"Kilde",ed:"Utgave",date:"Dato",id:"CSV-rad",status:"Status"},
+    uPkm:"estimert kg CO₂e/pkm", uVkm:"estimert kg CO₂e/kjøretøy-km", life:"livsløp", direct:"bare direkte utslipp", srcOk:"kilde oppgitt", srcMiss:"mangler kilde",
+    refRow:"Referansebil (bensin)", srcNote:"Kildetekster er på norsk. Alle tall hentet 2026-11-02 fra utslippsfaktorer_YTM (v2).",
+    privacy:"Testversjon. Ingen innlogging, ingen server, ingen sporing. Data lagres bare i din nettleser.",
+    exLabels:{ex1:"Eksempel: jobbreise med elbil",ex2:"Eksempel: bybuss til byen",ex3:"Eksempel: flytur",ex4:"Eksempel: hjemmekontor"}
+  },
+  en: {
+    banner:"Test version – estimated figures, factor version "+FV,
+    tagline:"Estimate emissions from trips, compared with a petrol car with one person.",
+    theme:"Dark mode", themeOn:"Light mode", langLabel:"Language", themeLabel:"Display",
+    tabHome:"Overview", tabMethod:"Method",
+    register:"Log trip", overview:"Overview", overviewEx:"Example data in the prototype",
+    totalEm:"Estimated emissions, total", totalSave:"Estimated saving vs petrol car", trips:"Trips", tripsN:n=>n+(n===1?" trip":" trips"),
+    latest:"Latest trips", example:"Example", noTrips:"No trips yet. Tap “Log trip”.", clearAll:"Delete all trips", clearConfirm:"Tap again to delete all",
+    estKg:"estimated kg CO₂e", estKgShort:"estimated kg CO₂e", saveWord:"saving", higher:"higher than petrol car",
+    s1:"Mode", s2:"Distance", s3:"Result", step:(i,n)=>"Step "+i+" of "+n,
+    s1h:"How did you travel?", s1hSeg:n=>"Mode for leg "+n,
+    gFoot:"On foot and light", gCar:"Car", gPublic:"Public transport", gAir:"Air and other", gNot:"Not a trip",
+    carSub:"per car, 1 person", missing:"Missing source", directOnly:"Direct emissions only", noSel:"Choose a mode to continue.",
+    missingMsg:n=>n+" has no source in factor version "+FV+" and cannot be used in the calculation. See the Method tab.",
+    ferryMsg:"Ferry or boat: direct emissions only (not life cycle). The figure applies to Ruter’s public-transport boats in the Oslofjord, not car ferries or fast ferries.",
+    homeSub:"Avoided commute", homeMsg:"Home office counts as an avoided commute by petrol car (1 person). No physical trip.",
+    s2h:"How far?", s2hHome:"How long is the commute?", leg:n=>"Leg "+n, change:"Change", remove:"Remove", addLeg:"Add leg",
+    km:"km", distance:"Distance", commute:"Commute distance, one way", oneWay:"One way", roundTrip:"Round trip", returnTrip:"Round trip", returnSub:"All legs are doubled",
+    total:"Total", avoided:"Avoided commute", reset:"Reset", needKm:"Enter km greater than 0 for every leg.", needKmHome:"Enter km greater than 0.",
+    s3h:"Estimated emissions for the trip", s3hHome:"Estimated effect of home office", yourTrip:"Your trip", yourDay:"Home office", refCar:"Petrol car, 1 person", saving:"Saving vs petrol car",
+    savingNeg:"This trip has higher estimated emissions than the petrol car.", savingPos:"This trip has lower estimated emissions than the petrol car.", savingHome:"Avoided emissions from commuting by petrol car.",
+    breakdown:"How it is calculated", factorWord:"factor", perKm:"estimated kg CO₂e per km", perPkm:"per passenger-km", perVkm:"per vehicle-km, 1 person",
+    desc:"Description (optional)", descPh:"E.g. work trip", howCalc:"How is this calculated? See Method", factorVer:"Factor version",
+    back:"Back", cancel:"Cancel", next:"Next", saveTrip:"Save trip", saved:"Trip saved (prototype only).",
+    mTitle:"Method and sources", mIntro:"The figures are estimates based on Norwegian sources, and some are our own calculations combining several sources. They are not verified and give no guarantee of actual environmental effect.",
+    mFactor:"Factor version "+FV+" = utslippsfaktorer_YTM (v2, 2 Nov 2026), approved by the CTO.",
+    rules:"Rules",
+    r1:"<b>Emissions</b> = distance × factor per leg. Round trip doubles the distance. Numbers are rounded only for display.",
+    r2:"<b>Reference</b> = total distance × petrol car ("+REFKM.toLocaleString("en-GB")+" estimated kg CO₂e per vehicle-km, 1 person in the car). Saving = reference − emissions, and can be negative.",
+    r3:"<b>Car = 1 person.</b> Car factors apply to the driver alone. The number of passengers cannot be chosen in this version.",
+    r4:"<b>Home office</b> = avoided commute counted with a petrol car over the commute distance. Emissions are set to 0.",
+    r5:"<b>Life cycle</b> is the basis for all factors, except <b>ferry/boat</b>, which has direct emissions only.",
+    r6:"<b>Air</b> includes an altitude effect (×1.8 on the combustion part).",
+    r7:"Other modes use the source’s own occupancy (e.g. city bus 25.2 %, regional/express bus 50 %, air 70 %).",
+    r8:"Modes without an approved source show “missing source” and cannot be selected.",
+    exTitle:"Worked example", exText:"Example: electric car, 10 km",
+    srcTitle:"Source table", th:{mode:"Mode",val:"Value",unit:"Unit",scope:"Scope",occ:"Occupancy",src:"Source",ed:"Edition",date:"Date",id:"CSV row",status:"Status"},
+    uPkm:"estimated kg CO₂e/pkm", uVkm:"estimated kg CO₂e/vehicle-km", life:"life cycle", direct:"direct emissions only", srcOk:"source given", srcMiss:"missing source",
+    refRow:"Reference car (petrol)", srcNote:"Source texts are in Norwegian. All figures retrieved 2026-11-02 from utslippsfaktorer_YTM (v2).",
+    privacy:"Test version. No login, no server, no tracking. Data is stored only in your browser.",
+    exLabels:{ex1:"Example: work trip by electric car",ex2:"Example: city bus into town",ex3:"Example: flight",ex4:"Example: home office"}
+  }
+};
+
+/* ===== Ikoner (dekorative, aria-hidden) ===== */
+const svg = (inner, s=28) => `<svg aria-hidden="true" focusable="false" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const ICON = {
+  walking: svg('<circle cx="13" cy="4.5" r="1.8"/><path d="M12 8l-2.5 4 2.5 2.5V21M12 8l3 3.5 3 .5M9.5 12L7 14.5M12 14.5L9.5 21"/>'),
+  bicycle: svg('<circle cx="5.5" cy="16" r="3.5"/><circle cx="18.5" cy="16" r="3.5"/><path d="M5.5 16L9 8h6l3.5 8M9 8l3.5 8M8 6h3M15 8l-1-2h-2"/>'),
+  e_scooter: svg('<circle cx="6" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M8.5 18H16.5M18 15.5L16 4h-3M16 4h3"/>'),
+  car: svg('<path d="M4 16v-4l2-5h12l2 5v4zM4 12h16"/><circle cx="7.5" cy="17" r="1.8"/><circle cx="16.5" cy="17" r="1.8"/>'),
+  bus: svg('<rect x="4" y="4" width="16" height="13" rx="2"/><path d="M4 11h16M8 4v7M16 4v7"/><circle cx="8" cy="19" r="1.6"/><circle cx="16" cy="19" r="1.6"/>'),
+  train: svg('<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 17l-2 4M15 17l2 4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/>'),
+  airplane: svg('<path d="M12 2l1.8 7L22 13v2l-8.2-2L13 19l3 2v1l-4-1-4 1v-1l3-2-.8-6L2 15v-2l8.2-4z"/>'),
+  ferry: svg('<path d="M3 15l2 5h14l2-5zM6 15V9h12v6M10 9V5h4v4"/><path d="M2 22c2 0 2-1 4-1s2 1 4 1 2-1 4-1 2 1 4 1 2-1 4-1" stroke-width="1.6"/>'),
+  home: svg('<path d="M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6"/>'),
+  other: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .7-1.5 1.2-1.5 2.5M12 17.5v.1"/>'),
+  leaf: svg('<path d="M5 19c0-9 5-14 15-14 0 10-5 15-14 15M5 19c2-5 5-8 9-10"/>', 26),
+  sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>', 22),
+  moon: svg('<path d="M21 13A9 9 0 1111 3a7 7 0 0010 10z"/>', 22),
+  home2: svg('<path d="M3 11l9-8 9 8M5 10v10h14V10"/>', 24),
+  book: svg('<path d="M4 4h6a3 3 0 013 3v13a2 2 0 00-2-2H4zM20 4h-6a3 3 0 00-3 3v13a2 2 0 012-2h7z"/>', 24),
+  plus: svg('<path d="M12 5v14M5 12h14"/>', 22),
+  arrowR: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 22),
+  up: svg('<path d="M12 19V5M6 11l6-6 6 6"/>', 24),
+  down: svg('<path d="M12 5v14M6 13l6 6 6-6"/>', 24)
+};
+const modeIcon = m => ({walking:ICON.walking,bicycle:ICON.bicycle,e_scooter:ICON.e_scooter,electric_car:ICON.car,hybrid_car:ICON.car,gasoline_car:ICON.car,diesel_car:ICON.car,
+  city_bus:ICON.bus,regional_bus:ICON.bus,electric_train:ICON.train,diesel_train:ICON.train,train_unknown:ICON.train,airplane:ICON.airplane,ferry:ICON.ferry,other:ICON.other,home_office:ICON.home})[m];
+const GROUPS = [
+  ["gFoot",["walking","bicycle","e_scooter"]],
+  ["gCar",["electric_car","gasoline_car","diesel_car","hybrid_car"]],
+  ["gPublic",["city_bus","regional_bus","electric_train","diesel_train","train_unknown","ferry"]],
+  ["gAir",["airplane","other"]]
+];
+const CARS = ["electric_car","gasoline_car","diesel_car","hybrid_car"];
+
+/* ===== Beregning (samme regler som calc/src/calc.ts, ingen avrunding) ===== */
+function calcTrip(segs, ret){
+  const mult = ret ? 2 : 1; let dist = 0, em = 0; const rows = [];
+  for (const s of segs){ const d = s.km * mult, f = perPkm(s.mode); dist += d; em += d * f; rows.push({mode:s.mode, km:d, f, kg:d*f}); }
+  const base = dist * REFKM; return {dist, em, base, save: base - em, rows};
+}
+function calcHome(km, ret){ const av = km * (ret ? 2 : 1); const base = av * REFKM; return {dist:0, avoided:av, em:0, base, save:base, rows:[]}; }
+
+/* ===== Format ===== */
+let S; // state
+const loc = () => S.lang === "nb" ? "nb-NO" : "en-GB";
+const fmtKg = n => (n < 0 ? "−" : "") + Math.abs(n).toLocaleString(loc(), {minimumFractionDigits:2, maximumFractionDigits:3});
+const fmtKm = n => n.toLocaleString(loc(), {maximumFractionDigits:3});
+const fmtF = n => n.toLocaleString(loc(), {maximumFractionDigits:6});
+const parseNum = s => { const t = String(s).trim().replace(",", "."); return t === "" ? NaN : Number(t); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const t = () => T[S.lang];
+
+/* ===== State ===== */
+function exampleTrips(){
+  const mk = (id, key, kind, segs, ret, commute) => {
+    const r = kind === "home" ? calcHome(commute, ret) : calcTrip(segs.map(s=>({mode:s[0],km:s[1]})), ret);
+    return {id, example:true, key, kind, segs:(segs||[]).map(s=>({mode:s[0],km:s[1]})), ret, commute, r};
+  };
+  return [
+    mk("e1","ex1","trip",[["electric_car",24]],true),
+    mk("e2","ex2","trip",[["city_bus",6]],false),
+    mk("e3","ex3","trip",[["airplane",400]],false),
+    mk("e4","ex4","home",null,true,15)
+  ];
+}
+S = { lang:"nb", theme:(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light",
+  view:"home", step:1, kind:"trip", segs:[{mode:null,km:""}], active:0, ret:false, commute:"", avoided:"return", desc:"", notice:null,
+  trips:exampleTrips(), toast:null, confirmClear:false };
+
+function resetWizard(){ Object.assign(S, {step:1, kind:"trip", segs:[{mode:null,km:""}], active:0, ret:false, commute:"", avoided:"return", desc:"", notice:null}); }
+
+/* ===== Views ===== */
+function header(){
+  const L = t();
+  return `<div class="banner" role="status">${esc(L.banner)}</div>
+  <header class="appbar">
+    <div class="brand">${ICON.leaf}<span>Carboncut</span></div>
+    <div class="seg" role="group" aria-label="${esc(L.langLabel)}">
+      <button type="button" data-a="lang" data-v="nb" aria-pressed="${S.lang==="nb"}" lang="nb" aria-label="Norsk bokmål">NB</button>
+      <button type="button" data-a="lang" data-v="en" aria-pressed="${S.lang==="en"}" lang="en" aria-label="English">EN</button>
+    </div>
+    <button type="button" class="iconbtn" data-a="theme" aria-pressed="${S.theme==="dark"}" aria-label="${esc(S.theme==="dark"?L.themeOn:L.theme)}" title="${esc(S.theme==="dark"?L.themeOn:L.theme)}">${S.theme==="dark"?ICON.sun:ICON.moon}</button>
+  </header>`;
+}
+function tabbar(){
+  const L = t();
+  return `<nav class="tabbar" aria-label="Hovedmeny"><div class="in">
+    <button type="button" data-a="go" data-v="home" ${S.view==="home"?'aria-current="page"':""}>${ICON.home2}${esc(L.tabHome)}</button>
+    <button type="button" data-a="go" data-v="method" ${S.view==="method"?'aria-current="page"':""}>${ICON.book}${esc(L.tabMethod)}</button>
+  </div></nav>`;
+}
+function tripTitle(tr){
+  const L = t();
+  if (tr.example) return L.exLabels[tr.key];
+  if (tr.desc) return tr.desc;
+  return tr.kind === "home" ? modeName("home_office", S.lang) : tr.segs.map(s=>modeName(s.mode,S.lang)).join(" + ");
+}
+function tripSub(tr){
+  const L = t();
+  if (tr.kind === "home") return `${L.avoided}: ${fmtKm(tr.r.avoided)} ${L.km}`;
+  return `${tr.segs.map(s=>modeName(s.mode,S.lang)+" "+fmtKm(s.km)+" "+L.km).join(" + ")}${tr.ret?" · "+L.roundTrip.toLowerCase():""}`;
+}
+function viewHome(){
+  const L = t();
+  const tot = S.trips.reduce((a,x)=>({em:a.em+x.r.em, sv:a.sv+x.r.save}), {em:0, sv:0});
+  const anyEx = S.trips.some(x=>x.example);
+  const list = S.trips.map(tr => `<div class="trip">
+      <div class="ic">${modeIcon(tr.kind==="home"?"home_office":tr.segs[0].mode)}</div>
+      <div class="body"><div class="t">${esc(tripTitle(tr))} ${tr.example?`<span class="tag ex">${esc(L.example)}</span>`:""}</div><div class="muted small">${esc(tripSub(tr))}</div></div>
+      <div class="r"><div class="t">${fmtKg(tr.r.em)}</div><div class="unit">${esc(L.estKgShort)}</div>
+        <div class="${tr.r.save<0?"neg":"pos"} small">${tr.r.save<0?"▼":"▲"} ${fmtKg(tr.r.save)}</div></div>
+    </div>`).join("");
+  return `<main id="main">
+    <h1 id="h">Carboncut</h1>
+    <p class="muted">${esc(L.tagline)}</p>
+    <button type="button" class="btn hero" data-a="start">${ICON.plus}${esc(L.register)}</button>
+    <h3>${esc(L.overview)}${anyEx?` <span class="tag ex">${esc(L.overviewEx)}</span>`:""}</h3>
+    <div class="card"><div class="stats">
+      <div class="stat wide"><div class="l">${esc(L.totalEm)}</div><div class="v">${fmtKg(tot.em)} <span class="unit">${esc(L.estKg)}</span></div></div>
+      <div class="stat"><div class="l">${esc(L.totalSave)}</div><div class="v ${tot.sv<0?"neg":""}">${fmtKg(tot.sv)}</div><div class="unit">${esc(L.estKg)}</div></div>
+      <div class="stat"><div class="l">${esc(L.trips)}</div><div class="v">${S.trips.length}</div><div class="unit">${esc(L.tripsN(S.trips.length))}</div></div>
+    </div></div>
+    <h3>${esc(L.latest)}</h3>
+    <div class="card">${list || `<p class="muted">${esc(L.noTrips)}</p>`}</div>
+    ${S.trips.length?`<button type="button" class="btn secondary small" data-a="clear">${esc(S.confirmClear?L.clearConfirm:L.clearAll)}</button>`:""}
+  </main>`;
+}
+function stepper(){
+  const L = t(); const names = [L.s1,L.s2,L.s3];
+  return `<ol class="steps" aria-label="${esc(L.step(S.step,3))}">${names.map((n,i)=>`<li ${S.step===i+1?'aria-current="step"':""} class="${S.step>i+1?"done":""}"><span class="sr">${esc(L.step(i+1,3))}: </span>${i+1}. ${esc(n)}</li>`).join("")}</ol>`;
+}
+function tile(m){
+  const L = t(); const ok = isOk(m); const f = factorOf(m);
+  const cur = S.segs[S.active] && S.segs[S.active].mode;
+  const sel = (S.kind==="trip" && cur===m) || (m==="home_office" && S.kind==="home");
+  let sub = "";
+  if (!ok) sub = `<span class="tag miss">${esc(L.missing)}</span>`;
+  else if (f && f.lifecycle === false) sub = `<span class="tag dir">${esc(L.directOnly)}</span>`;
+  else if (CARS.includes(m)) sub = `<span class="sub">${esc(L.carSub)}</span>`;
+  const dis = !ok;
+  return `<button type="button" class="tile" data-a="pick" data-v="${m}" aria-pressed="${sel}" ${dis?'aria-disabled="true"':""}>
+    ${modeIcon(m)}<span class="name">${esc(modeName(m,S.lang))}</span>${sub}</button>`;
+}
+function viewStep1(){
+  const L = t();
+  const adding = S.segs.length > 1 || S.active > 0;
+  const heading = adding ? L.s1hSeg(S.active+1) : L.s1h;
+  const groups = GROUPS.map(([k,ms]) => `<h3>${esc(L[k])}</h3><div class="grid2">${ms.map(tile).join("")}</div>`).join("");
+  const home = S.segs.length === 1 ? `<h3>${esc(L.gNot)}</h3><div class="grid2"><button type="button" class="tile wide" data-a="pick" data-v="home_office" aria-pressed="${S.kind==="home"}">${modeIcon("home_office")}<span><span class="name">${esc(modeName("home_office",S.lang))}</span><br><span class="sub">${esc(L.homeSub)}</span></span></button></div>` : "";
+  const note = S.notice ? `<div class="notice" role="status">${esc(S.notice)}</div>` : "";
+  return `<main id="main">${stepper()}<h1 id="h" tabindex="-1">${esc(heading)}</h1>${note}${groups}${home}</main>`;
+}
+function segValid(){ return S.kind==="home" ? parseNum(S.commute) > 0 : S.segs.every(s => s.mode && parseNum(s.km) > 0); }
+function viewStep2(){
+  const L = t();
+  if (S.kind === "home"){
+    return `<main id="main">${stepper()}<h1 id="h" tabindex="-1">${esc(L.s2hHome)}</h1>
+      <div class="notice" role="note">${esc(L.homeMsg)}</div>
+      <div class="segcard">
+        <div class="segtop"><div class="modechip">${modeIcon("home_office")}${esc(modeName("home_office",S.lang))}</div><button type="button" class="btn secondary small" data-a="change" data-i="0">${esc(L.change)}</button></div>
+        <div class="field"><label for="km0">${esc(L.commute)}</label>
+        <div class="inp"><input id="km0" inputmode="decimal" autocomplete="off" data-in="commute" value="${esc(S.commute)}" placeholder="0"><span class="u">${esc(L.km)}</span></div></div>
+        <div class="chips">${[1,5,10].map(n=>`<button type="button" class="chip" data-a="add" data-v="${n}" data-i="0">+${n}</button>`).join("")}<button type="button" class="chip" data-a="zero" data-i="0">${esc(L.reset)}</button></div>
+      </div>
+      <div class="lbl">${esc(L.avoided)}</div>
+      <div class="radios" role="radiogroup" aria-label="${esc(L.avoided)}">
+        <button type="button" role="radio" aria-checked="${S.avoided==="one_way"}" data-a="avoided" data-v="one_way">${esc(L.oneWay)}</button>
+        <button type="button" role="radio" aria-checked="${S.avoided==="return"}" data-a="avoided" data-v="return">${esc(L.roundTrip)}</button>
+      </div></main>`;
+  }
+  const segs = S.segs.map((s,i) => `<div class="segcard">
+      <div class="segtop"><div class="modechip">${modeIcon(s.mode)}${esc(modeName(s.mode,S.lang))}</div>
+        <button type="button" class="btn secondary small" data-a="change" data-i="${i}">${esc(L.change)}</button>
+        ${S.segs.length>1?`<button type="button" class="btn secondary small" data-a="rm" data-i="${i}" aria-label="${esc(L.remove+": "+L.leg(i+1))}">${esc(L.remove)}</button>`:""}</div>
+      ${S.segs.length>1?`<div class="muted small" style="margin:0 0 6px">${esc(L.leg(i+1))}</div>`:""}
+      <div class="field"><label for="km${i}">${esc(L.distance)}</label>
+      <div class="inp"><input id="km${i}" inputmode="decimal" autocomplete="off" data-in="km" data-i="${i}" value="${esc(s.km)}" placeholder="0"><span class="u">${esc(L.km)}</span></div></div>
+      <div class="chips">${[1,5,10].map(n=>`<button type="button" class="chip" data-a="add" data-v="${n}" data-i="${i}">+${n}</button>`).join("")}<button type="button" class="chip" data-a="zero" data-i="${i}">${esc(L.reset)}</button></div>
+      ${s.mode==="ferry"?`<div class="notice" style="margin:12px 0 0">${esc(L.ferryMsg)}</div>`:""}
+    </div>`).join("");
+  return `<main id="main">${stepper()}<h1 id="h" tabindex="-1">${esc(L.s2h)}</h1>
+    ${segs}
+    <button type="button" class="btn secondary" data-a="addleg" style="margin:0 0 12px">${ICON.plus}${esc(L.addLeg)}</button>
+    <button type="button" class="switch" role="switch" aria-checked="${S.ret}" data-a="ret"><span class="track" aria-hidden="true"></span><span>${esc(L.returnTrip)}<br><span class="muted small" style="font-weight:500">${esc(L.returnSub)}</span></span></button>
+    <p class="muted" style="margin-top:12px" id="totkm">${esc(totalKmText())}</p>
+  </main>`;
+}
+function totalKmText(){
+  const L = t(); if (S.kind==="home") return "";
+  const sum = S.segs.reduce((a,s)=>a+(parseNum(s.km)>0?parseNum(s.km):0),0) * (S.ret?2:1);
+  return `${L.total}: ${fmtKm(sum)} ${L.km}`;
+}
+function currentResult(){
+  if (S.kind==="home") return calcHome(parseNum(S.commute), S.avoided==="return");
+  return calcTrip(S.segs.map(s=>({mode:s.mode,km:parseNum(s.km)})), S.ret);
+}
+function viewStep3(){
+  const L = t(); const home = S.kind==="home"; const r = currentResult(); const mx = Math.max(r.em, r.base) || 1;
+  const neg = r.save < 0;
+  const rows = home ? "" : r.rows.map(x => `<div class="trip"><div class="ic">${modeIcon(x.mode)}</div>
+      <div class="body"><div class="t">${esc(modeName(x.mode,S.lang))}</div>
+      <div class="muted small">${fmtKm(x.km)} ${esc(L.km)} × ${fmtF(x.f)} ${esc(L.perKm)}${x.mode==="ferry"?` · <span class="tag dir">${esc(L.directOnly)}</span>`:""}</div></div>
+      <div class="r"><div class="t">${fmtKg(x.kg)}</div><div class="unit">${esc(L.estKgShort)}</div></div></div>`).join("");
+  const refRow = `<div class="trip"><div class="ic">${ICON.car}</div><div class="body"><div class="t">${esc(L.refCar)}</div>
+      <div class="muted small">${fmtKm(home?r.avoided:r.dist)} ${esc(L.km)} × ${fmtF(REFKM)} ${esc(L.perKm)}</div></div>
+      <div class="r"><div class="t">${fmtKg(r.base)}</div><div class="unit">${esc(L.estKgShort)}</div></div></div>`;
+  const hasFerry = !home && r.rows.some(x=>x.mode==="ferry");
+  return `<main id="main">${stepper()}<h1 id="h" tabindex="-1">${esc(home?L.s3hHome:L.s3h)}</h1>
+    <div class="card" aria-live="polite">
+      <div class="big">${fmtKg(r.em)}</div><div class="unit" style="font-size:17px">${esc(L.estKg)}</div>
+      <div class="muted small" style="margin-top:4px">${home?`${esc(L.avoided)}: ${fmtKm(r.avoided)} ${esc(L.km)}`:`${fmtKm(r.dist)} ${esc(L.km)}`}</div>
+      <div class="bars">
+        <div class="barrow"><div class="cap"><span>${esc(home?L.yourDay:L.yourTrip)}</span><span>${fmtKg(r.em)} ${esc(L.estKgShort)}</span></div><div class="bar"><i style="width:${(r.em/mx)*100}%;background:var(--bar-you)"></i></div></div>
+        <div class="barrow"><div class="cap"><span>${esc(L.refCar)}</span><span>${fmtKg(r.base)} ${esc(L.estKgShort)}</span></div><div class="bar"><i style="width:${(r.base/mx)*100}%;background:var(--bar-ref)"></i></div></div>
+      </div>
+      <div class="save ${neg?"bad":"ok"}" role="status">${neg?ICON.down:ICON.up}<span>${esc(L.saving)}: ${fmtKg(r.save)} ${esc(L.estKgShort)}<br><span style="font-weight:600;font-size:15px">${esc(neg?L.savingNeg:(home?L.savingHome:L.savingPos))}</span></span></div>
+    </div>
+    ${hasFerry?`<div class="notice">${esc(L.ferryMsg)}</div>`:""}
+    <h3>${esc(L.breakdown)}</h3>
+    <div class="card" style="padding-top:4px;padding-bottom:4px">${rows}${refRow}</div>
+    <div class="field"><label for="desc">${esc(L.desc)}</label><div class="inp"><input id="desc" style="font-size:19px;font-weight:600" maxlength="200" data-in="desc" value="${esc(S.desc)}" placeholder="${esc(L.descPh)}"></div></div>
+    <p style="margin-top:12px"><a href="#" data-a="method" style="color:var(--fg);font-weight:700;display:inline-block;min-height:48px;line-height:48px">${esc(L.howCalc)} →</a> <span class="tag">${esc(L.factorVer)} ${FV}</span></p>
+  </main>`;
+}
+function actionbar(){
+  const L = t(); let left, right, hint = "";
+  if (S.step===1){
+    const adding = S.segs.length>1 && !S.segs[S.active].mode;
+    left = `<button type="button" class="btn secondary" data-a="${adding?"cancelLeg":"cancel"}">${esc(adding?L.back:L.cancel)}</button>`;
+    const can = S.kind==="home" || (S.segs[S.active] && S.segs[S.active].mode);
+    right = `<button type="button" class="btn" data-a="next" ${can?"":'disabled aria-describedby="hint"'}>${esc(L.next)}${ICON.arrowR}</button>`;
+    if (!can) hint = L.noSel;
+  } else if (S.step===2){
+    left = `<button type="button" class="btn secondary" data-a="prev">${esc(L.back)}</button>`;
+    const can = segValid();
+    right = `<button type="button" class="btn" data-a="next" id="next2" ${can?"":'disabled aria-describedby="hint"'}>${esc(L.next)}${ICON.arrowR}</button>`;
+    if (!can) hint = S.kind==="home" ? L.needKmHome : L.needKm;
+  } else {
+    left = `<button type="button" class="btn secondary" data-a="prev">${esc(L.back)}</button>`;
+    right = `<button type="button" class="btn" data-a="save">${esc(L.saveTrip)}</button>`;
+  }
+  return `<div class="actionbar"><div class="in">${left}${right}<p class="hint" id="hint" aria-live="polite">${esc(hint)}</p></div></div>`;
+}
+function viewMethod(){
+  const L = t(); const th = L.th;
+  const rowFor = f => {
+    const ok = f.status==="dokumentert";
+    return `<tr class="${ok?"":"miss"}"><td class="mode">${esc(modeName(f.mode,S.lang))}</td>
+      <td data-l="${esc(th.val)}"><b>${f.value==null?"–":fmtF(f.value)}</b></td>
+      <td data-l="${esc(th.unit)}">${esc(f.unit==="kg_co2e_per_vkm"?L.uVkm:L.uPkm)}</td>
+      <td data-l="${esc(th.scope)}">${f.lifecycle==null?"–":f.lifecycle?esc(L.life):`<span class="tag dir">${esc(L.direct)}</span>`}</td>
+      <td data-l="${esc(th.occ)}">${esc(f.occupancyBasis||"–")}</td>
+      <td data-l="${esc(th.src)}" lang="nb">${esc(f.source||"–")}${f.note?`<div class="muted small">${esc(f.note)}</div>`:""}</td>
+      <td data-l="${esc(th.ed)}" lang="nb">${esc(f.edition||"–")}</td>
+      <td data-l="${esc(th.date)}">${esc(f.sourceDate||"–")}</td>
+      <td data-l="${esc(th.id)}">${esc(f.csvId||"–")}</td>
+      <td data-l="${esc(th.status)}">${ok?esc(L.srcOk):`<span class="tag miss">${esc(L.srcMiss)}</span>`}</td></tr>`;
+  };
+  const refRow = `<tr><td class="mode">${esc(L.refRow)}</td><td data-l="${esc(th.val)}"><b>${fmtF(REFKM)}</b></td><td data-l="${esc(th.unit)}">${esc(L.uVkm)}</td>
+    <td data-l="${esc(th.scope)}">${esc(L.life)}</td><td data-l="${esc(th.occ)}">${esc(REF.occupancyBasis)}</td><td data-l="${esc(th.src)}" lang="nb">${esc(REF.source)}</td>
+    <td data-l="${esc(th.ed)}" lang="nb">${esc(REF.edition)}</td><td data-l="${esc(th.date)}">${esc(REF.sourceDate)}</td><td data-l="${esc(th.id)}">${esc(REF.csvId)}</td><td data-l="${esc(th.status)}">${esc(L.srcOk)}</td></tr>`;
+  const ex = calcTrip([{mode:"electric_car",km:10}], false);
+  const head = `<thead><tr>${["mode","val","unit","scope","occ","src","ed","date","id","status"].map(k=>`<th scope="col">${esc(th[k])}</th>`).join("")}</tr></thead>`;
+  return `<main id="main"><h1 id="h" tabindex="-1">${esc(L.mTitle)}</h1>
+    <div class="narrow"><p>${esc(L.mIntro)}</p><p><span class="tag">${esc(L.factorVer)} ${FV}</span> <span class="muted small">${esc(L.mFactor)}</span></p>
+    <h3>${esc(L.rules)}</h3><ul class="rules">${["r1","r2","r3","r4","r5","r6","r7","r8"].map(k=>`<li>${L[k]}</li>`).join("")}</ul>
+    <h3>${esc(L.exTitle)} <span class="tag ex">${esc(L.example)}</span></h3>
+    <div class="card"><b>${esc(L.exText)}</b><br>10 ${esc(L.km)} × ${fmtF(perPkm("electric_car"))} = <b>${fmtKg(ex.em)}</b> ${esc(L.estKg)}<br>
+    10 ${esc(L.km)} × ${fmtF(REFKM)} = <b>${fmtKg(ex.base)}</b> ${esc(L.estKg)} (${esc(L.refCar)})<br>
+    ${esc(L.saving)}: <b class="pos">${fmtKg(ex.save)}</b> ${esc(L.estKg)}</div></div>
+    <h3>${esc(L.srcTitle)}</h3>
+    <table class="src">${head}<tbody>${FACTORS.map(rowFor).join("")}${refRow}</tbody></table>
+    <p class="muted small">${esc(L.srcNote)}</p><p class="muted small">${esc(L.privacy)}</p>
+  </main>`;
+}
+
+/* ===== Render ===== */
+function render(focus){
+  const doc = document.documentElement; doc.lang = S.lang; doc.dataset.theme = S.theme;
+  document.title = "Carboncut – " + (S.lang==="nb" ? "skisser v1 (klikkbar prototype)" : "sketches v1 (clickable prototype)");
+  let body, bar = "";
+  if (S.view==="home"){ body = viewHome(); bar = tabbar(); }
+  else if (S.view==="method"){ body = viewMethod(); bar = tabbar(); }
+  else { body = S.step===1?viewStep1():S.step===2?viewStep2():viewStep3(); bar = actionbar(); }
+  document.getElementById("root").innerHTML = header() + body + bar + (S.toast?`<div class="toast" role="status">${esc(S.toast)}</div>`:"");
+  if (focus){ const h = document.getElementById("h"); if (h){ h.setAttribute("tabindex","-1"); h.focus({preventScroll:true}); window.scrollTo(0,0);} }
+}
+function go(view, step){ S.view = view; if (step) S.step = step; S.confirmClear = false; render(true); }
+function updateStep2Live(){
+  const L = t(); const btn = document.getElementById("next2"), hint = document.getElementById("hint"), tk = document.getElementById("totkm");
+  const ok = segValid();
+  if (btn){ btn.disabled = !ok; if (ok) btn.removeAttribute("aria-describedby"); else btn.setAttribute("aria-describedby","hint"); }
+  if (hint) hint.textContent = ok ? "" : (S.kind==="home" ? L.needKmHome : L.needKm);
+  if (tk) tk.textContent = totalKmText();
+}
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-a]"); if (!el) return;
+  const a = el.dataset.a, v = el.dataset.v, i = +el.dataset.i; const L = t();
+  if (a==="lang"){ S.lang = v; render(); }
+  else if (a==="theme"){ S.theme = S.theme==="dark"?"light":"dark"; render(); }
+  else if (a==="go"){ resetWizard(); go(v); }
+  else if (a==="method"){ e.preventDefault(); S.view="method"; render(true); }
+  else if (a==="start"){ resetWizard(); S.view="wizard"; S.step=1; render(true); }
+  else if (a==="cancel"){ resetWizard(); go("home"); }
+  else if (a==="cancelLeg"){ S.segs.pop(); S.active = S.segs.length-1; S.notice=null; S.step=2; render(true); }
+  else if (a==="pick"){
+    if (v==="home_office"){ S.kind="home"; S.segs=[{mode:null,km:""}]; S.active=0; S.notice=null; S.step=2; render(true); return; }
+    if (!isOk(v)){ S.notice = L.missingMsg(modeName(v,S.lang)); render(); const h=document.getElementById("h"); if(h) h.focus({preventScroll:true}); return; }
+    S.kind="trip"; S.segs[S.active].mode = v; S.notice = null; S.step = 2; render(true);
+  }
+  else if (a==="next"){ if (el.disabled) return; if (S.step===1){ S.step=2; } else if (S.step===2){ S.step=3; } render(true); }
+  else if (a==="prev"){ S.step = Math.max(1, S.step-1); S.notice=null; if (S.step===1) S.active = Math.min(S.active, S.segs.length-1); render(true); }
+  else if (a==="change"){ S.active = i; S.notice=null; S.step = 1; render(true); }
+  else if (a==="rm"){ S.segs.splice(i,1); S.active = 0; render(); }
+  else if (a==="addleg"){ S.segs.push({mode:null,km:""}); S.active = S.segs.length-1; S.kind="trip"; S.step=1; S.notice=null; render(true); }
+  else if (a==="ret"){ S.ret = !S.ret; render(); const b=document.querySelector('[data-a="ret"]'); if(b) b.focus(); }
+  else if (a==="avoided"){ S.avoided = v; render(); }
+  else if (a==="add" || a==="zero"){
+    const cur = S.kind==="home" ? parseNum(S.commute) : parseNum(S.segs[i].km); const base = cur>0?cur:0;
+    const nv = a==="zero" ? "" : String(Math.round((base + +v)*1000)/1000).replace(".", S.lang==="nb"?",":".");
+    if (S.kind==="home") S.commute = nv; else S.segs[i].km = nv;
+    const inp = document.getElementById("km"+(S.kind==="home"?0:i)); if (inp) inp.value = nv; updateStep2Live();
+  }
+  else if (a==="save"){
+    const r = currentResult();
+    S.trips.unshift({id:"t"+Date.now(), example:false, kind:S.kind, segs:S.kind==="trip"?S.segs.map(s=>({mode:s.mode,km:parseNum(s.km)})):[], ret:S.kind==="home"?S.avoided==="return":S.ret, commute:parseNum(S.commute), desc:S.desc.trim(), r});
+    resetWizard(); S.view="home"; S.toast = L.saved; render(true); setTimeout(()=>{ S.toast=null; if (S.view==="home") render(); }, 2600);
+  }
+  else if (a==="clear"){
+    if (!S.confirmClear){ S.confirmClear = true; render(); setTimeout(()=>{ if (S.confirmClear){ S.confirmClear=false; if (S.view==="home") render(); } }, 4000); }
+    else { S.trips = []; S.confirmClear = false; render(); }
+  }
+});
+document.addEventListener("input", e => {
+  const el = e.target; if (!el.dataset || !el.dataset.in) return;
+  if (el.dataset.in==="km"){ S.segs[+el.dataset.i].km = el.value; updateStep2Live(); }
+  else if (el.dataset.in==="commute"){ S.commute = el.value; updateStep2Live(); }
+  else if (el.dataset.in==="desc"){ S.desc = el.value; }
+});
+window.addEventListener("error", e => { document.title = "JSERROR: " + e.message; });
+render();
+</script>
+</body>
+</html>
