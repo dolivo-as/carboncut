@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<title>Carboncut – skisser v1 (klikkbar prototype)</title>
+<title>Carboncut – skisser v2 (klikkbar prototype)</title>
 <style>
 :root{
   --bg:#f8fafc; --card:#ffffff; --fg:#0f172a; --muted:#475569; --border:#64748b; --edge:#cbd5e1;
@@ -70,8 +70,8 @@ p{margin:0 0 10px}
 .neg{color:var(--bad);font-weight:700}
 .pos{color:var(--good);font-weight:700}
 /* Steps */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 14px;padding:0;list-style:none}
-.steps li{border-top:6px solid var(--edge);padding-top:6px;font-size:14px;font-weight:600;color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 14px;padding:0;list-style:none}
+.steps li{border-top:6px solid var(--edge);padding-top:6px;font-size:13px;overflow-wrap:anywhere;font-weight:600;color:var(--muted)}
 .steps li[aria-current="step"]{border-color:var(--primary);color:var(--fg);font-weight:800}
 .steps li.done{border-color:var(--primary)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
@@ -111,7 +111,7 @@ p{margin:0 0 10px}
 .actionbar .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 1.6fr;gap:10px}
 .actionbar .hint{grid-column:1/-1;font-size:14px;color:var(--muted);margin:0;min-height:1.2em}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--card);border-top:1px solid var(--edge);padding-bottom:env(safe-area-inset-bottom)}
-.tabbar .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr}
+.tabbar .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
 .tabbar button{min-height:60px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:700;font-size:14px;cursor:pointer;border-top:4px solid transparent;color:var(--muted)}
 .tabbar button[aria-current="page"]{color:var(--fg);border-top-color:var(--primary)}
 .big{font-size:56px;line-height:1;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
@@ -141,6 +141,46 @@ table.src tr.miss td{color:var(--muted)}
 details summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-weight:700}
 ul.rules{padding-left:20px;margin:0 0 10px}
 ul.rules li{margin:0 0 8px}
+ .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 12px}
+.pbtn{position:relative;min-width:0;min-height:112px;padding:14px;border-radius:var(--radius);border:2px solid var(--border);background:var(--card);cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.pbtn svg{color:var(--primary)}
+.pbtn .name{font-size:24px;font-weight:900;line-height:1.1}
+.pbtn .sub{font-size:14px;color:var(--muted);line-height:1.25}
+.pbtn[aria-checked="true"]{border-color:var(--primary);border-width:4px;padding:12px;background:var(--primary-soft);color:var(--primary-soft-fg)}
+.pbtn[aria-checked="true"] svg{color:var(--primary-soft-fg)}
+.pbtn[aria-checked="true"] .sub{color:var(--primary-soft-fg)}
+.pbtn[aria-checked="true"]::after{content:"✓";position:absolute;top:8px;right:12px;font-weight:900;font-size:22px}
+.pbtn.wide{grid-column:1/-1;min-height:96px;flex-direction:row;align-items:center;gap:14px}
+.privacy{display:flex;gap:12px;align-items:flex-start;border:2px solid var(--primary);border-radius:var(--radius);background:var(--card);padding:12px 14px;margin:0 0 12px}
+.privacy svg{flex:none;color:var(--primary);margin-top:2px}
+.notice.sketch{border-style:dashed}
+.notice.open{border-style:dashed;background:var(--card);color:var(--fg);border-color:var(--warn-edge)}
+.tag.work{border-color:var(--primary);background:var(--primary-soft);color:var(--primary-soft-fg)}
+.tag.priv{border-color:var(--border);background:var(--card);color:var(--fg)}
+.tag.none{border-style:dashed;color:var(--muted)}
+.tag.sk{border-color:var(--warn-edge);background:var(--warn-bg);color:var(--warn-fg)}
+.ghead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 4px}
+.ghead h2{margin:0;display:flex;gap:8px;align-items:center}
+.ghead svg{color:var(--primary)}
+.vis{display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;font-size:15px;color:var(--muted)}
+.vis svg{flex:none;margin-top:1px}
+.mark{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0}
+.mark .btn{flex:1;min-width:64px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0}
+.kv dt{color:var(--muted);font-size:15px}
+.kv dd{margin:0;font-weight:700;overflow-wrap:anywhere}
+.f{margin:0 0 14px}
+.inp.txt input{font-size:19px;font-weight:600;min-height:56px}
+.optrow{display:grid;grid-template-columns:1fr;gap:10px;margin:0 0 14px}
+.opt{display:flex;gap:12px;align-items:flex-start;min-height:72px;width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:var(--radius);background:var(--card);cursor:pointer;text-align:left;position:relative}
+.opt svg{flex:none;color:var(--primary);margin-top:2px}
+.opt .name{font-weight:900;font-size:19px;display:block}
+.opt .sub{font-size:15px;color:var(--muted);display:block}
+.opt[aria-checked="true"]{border-color:var(--primary);border-width:3px;padding:11px 13px;background:var(--primary-soft);color:var(--primary-soft-fg)}
+.opt[aria-checked="true"] svg,.opt[aria-checked="true"] .sub{color:var(--primary-soft-fg)}
+.opt[aria-checked="true"]::after{content:"✓";position:absolute;top:8px;right:12px;font-weight:900;font-size:20px}
+.opt.small{min-height:56px}
+.opt.small .name{font-size:17px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -191,7 +231,7 @@ const T = {
     desc:"Beskrivelse (valgfri)", descPh:"F.eks. jobbreise", howCalc:"Hvordan er dette regnet? Se Metode", factorVer:"Faktorversjon",
     back:"Tilbake", cancel:"Avbryt", next:"Neste", saveTrip:"Lagre tur", saved:"Tur lagret (bare i prototypen).",
     mTitle:"Metode og kilder", mIntro:"Tallene er estimater basert på norske kilder, og noen er egne regnestykker på flere kilder. De er ikke verifisert og gir ingen garanti for faktisk miljøeffekt.",
-    mFactor:"Faktorversjon "+FV+" = utslippsfaktorer_YTM (v2, 02.11.2026), godkjent av CTO.",
+    mFactor:"Faktorversjon "+FV+" = godkjent faktorliste v2 (utslippsfaktorer_YTM.csv)",
     rules:"Regler",
     r1:"<b>Utslipp</b> = avstand × faktor per delstrekning. Tur-retur dobler avstanden. Tall rundes bare ved visning.",
     r2:"<b>Referanse</b> = total avstand × bensinbil ("+REFKM.toLocaleString("nb-NO")+" estimert kg CO₂e per kjøretøy-km, 1 person i bilen). Besparelse = referanse − utslipp, og kan være negativ.",
@@ -205,8 +245,39 @@ const T = {
     srcTitle:"Kildetabell", th:{mode:"Transportform",val:"Verdi",unit:"Enhet",scope:"Omfang",occ:"Belegg",src:"Kilde",ed:"Utgave",date:"Dato",id:"CSV-rad",status:"Status"},
     uPkm:"estimert kg CO₂e/pkm", uVkm:"estimert kg CO₂e/kjøretøy-km", life:"livsløp", direct:"bare direkte utslipp", srcOk:"kilde oppgitt", srcMiss:"mangler kilde",
     refRow:"Referansebil (bensin)", srcNote:"Kildetekster er på norsk. Alle tall hentet 2026-11-02 fra utslippsfaktorer_YTM (v2).",
-    privacy:"Testversjon. Ingen innlogging, ingen server, ingen sporing. Data lagres bare i din nettleser.",
-    exLabels:{ex1:"Eksempel: jobbreise med elbil",ex2:"Eksempel: bybuss til byen",ex3:"Eksempel: flytur",ex4:"Eksempel: hjemmekontor"}
+    privacy:"Skisse v2: innlogging, server og lagring er ikke bygget. Her lagres ingenting.",
+    exLabels:{ex1:"Eksempel: jobbreise med elbil",ex2:"Eksempel: bybuss til byen",ex3:"Eksempel: flytur",ex4:"Eksempel: hjemmekontor",ex5:"Eksempel: gammel tur fra testsiden"},
+    r9:"<b>Jobb og Privat</b> regnes med de samme faktorene. Private turer inngår aldri i firmaets tall, toppliste eller eksport. Hvordan pendling skal merkes, er ikke avgjort.",
+    s0:"Formål", tabAccount:"Konto",
+    skAuth:"SKISSE", skAuthText:"Dette er ikke ekte innlogging. Ingenting sendes eller lagres. Clerk brukes først når siden bygges.",
+    loginH:"Logg inn", email:"E-post", pass:"Passord", emailPh:"navn@firma.example", loginBtn:"Logg inn (skisse)",
+    noAcct:"Har du ikke konto?", toRegister:"Opprett konto", haveAcct:"Har du konto allerede?", toLogin:"Logg inn",
+    methodOpen:"Åpent spørsmål: innloggingsmetode (Microsoft-konto eller BankID) er ikke avgjort. Feltene her er bare plassholdere.",
+    demoTitle:"Skisse: se prototypen som", demoCompany:"Bedriftsbruker (Eksempel AS)", demoPerson:"Privatperson",
+    regH:"Opprett konto", acctType:"Hva slags konto?", tCompany:"Bedrift", tCompanySub:"For ansatte i et firma. Jobbturene dine inngår i firmaets tall.",
+    tPerson:"Privatperson", tPersonSub:"Egen konto uten firma. Du kan bli med i et firma senere og beholde turene dine.",
+    optCreate:"Opprett firma", optCreateSub:"Du blir administrator og kan invitere kolleger (forslag).", optJoin:"Bli med via invitasjonskode", optJoinSub:"Du får kode fra firmaets administrator.",
+    firmName:"Firmanavn", firmPh:"F.eks. Eksempel AS", code:"Invitasjonskode", codePh:"XXXX-XXXX",
+    joinNote:"Forespørselen venter på godkjenning fra administratoren i firmaet. Du får ikke tilgang til firmaet før den er godkjent.",
+    personNote:"Du kan bli med i et firma senere, under Konto. Turene dine beholdes.",
+    name:"Navn", namePh:"F.eks. Kari Eksempel", regBtn:"Opprett konto (skisse)", regBtnJoin:"Send forespørsel (skisse)", needType:"Velg kontotype for å gå videre.",
+    defaultWork:"Standard for nye turer: Jobb", defaultPriv:"Standard for nye turer: Privat", noValid:"Skisse: feltene valideres ikke.",
+    pendH:"Venter på godkjenning", pendText:"Forespørselen din er sendt til administratoren i firmaet (skisse). Du får tilgang når den er godkjent.",
+    pendDemo:"Se prototypen som godkjent bedriftsbruker", pendOut:"Tilbake til innlogging",
+    pH:"Hva slags tur er dette?", pWork:"Jobb", pWorkSub:"Reise i jobben", pPriv:"Privat", pPrivSub:"Reise på fritiden",
+    preWork:"Forhåndsvalgt: Jobb (standard for bedriftskonto). Du kan endre per tur.", prePriv:"Forhåndsvalgt: Privat (standard for privatkonto). Du kan endre per tur.",
+    privTitle:"Personvern", privText:"Private turer vises bare for deg. De inngår aldri i firmaets tall, toppliste eller eksport.",
+    privWorkCo:"Jobbturer inngår i firmaets tall.", privWorkPe:"Du er ikke med i noe firma. Ingen andre ser turene dine.",
+    commuteH:"Åpent spørsmål: pendling", commuteText:"Skal pendling (hjem–jobb) regnes som Jobb, som Privat eller som en egen kategori? Ikke avgjort. Foreløpig velger du selv.",
+    purposeLabel:"Formål", onlyYouTrip:"Bare du ser denne turen.", firmSeesTrip:"Inngår i firmaets tall.",
+    gWork:"Jobb", gPriv:"Privat", gNone:"Ikke oppgitt",
+    visWorkCo:"Inngår i firmaets tall.", visWorkPe:"Ikke delt: du er ikke med i noe firma.", visPriv:"Bare du ser dette. Inngår aldri i firmaets tall, toppliste eller eksport.",
+    visNone:"Gamle turer fra testsiden har ikke formål. Forslag: de teller ikke i firmaets tall før du har merket dem (åpent spørsmål).",
+    markWork:"Jobb", markPriv:"Privat", markAria:"Merk som", emptyG:"Ingen turer her ennå.",
+    loggedAs:"Innlogget som", sketchLogin:"(skisse)", acctH:"Konto", acctTypeL:"Kontotype", nameL:"Navn", emailL:"E-post", firmL:"Firma", roleL:"Rolle", statusL:"Status",
+    roleEmp:"Ansatt", roleAdmin:"Administrator", noFirm:"Ingen firma", active:"Aktiv", pendingS:"Venter på godkjenning",
+    joinH:"Bli med i et firma", joinText:"Du beholder turene dine. Private turer vises fortsatt bare for deg.", joinBtn:"Send forespørsel (skisse)", joinSent:"Forespørsel sendt. Venter på godkjenning.",
+    logout:"Logg ut", savedAs:(p)=>"Tur lagret som "+p+" (bare i prototypen)."
   },
   en: {
     banner:"Test version – estimated figures, factor version "+FV,
@@ -233,7 +304,7 @@ const T = {
     desc:"Description (optional)", descPh:"E.g. work trip", howCalc:"How is this calculated? See Method", factorVer:"Factor version",
     back:"Back", cancel:"Cancel", next:"Next", saveTrip:"Save trip", saved:"Trip saved (prototype only).",
     mTitle:"Method and sources", mIntro:"The figures are estimates based on Norwegian sources, and some are our own calculations combining several sources. They are not verified and give no guarantee of actual environmental effect.",
-    mFactor:"Factor version "+FV+" = utslippsfaktorer_YTM (v2, 2 Nov 2026), approved by the CTO.",
+    mFactor:"Factor version "+FV+" = approved factor list v2 (utslippsfaktorer_YTM.csv)",
     rules:"Rules",
     r1:"<b>Emissions</b> = distance × factor per leg. Round trip doubles the distance. Numbers are rounded only for display.",
     r2:"<b>Reference</b> = total distance × petrol car ("+REFKM.toLocaleString("en-GB")+" estimated kg CO₂e per vehicle-km, 1 person in the car). Saving = reference − emissions, and can be negative.",
@@ -247,8 +318,39 @@ const T = {
     srcTitle:"Source table", th:{mode:"Mode",val:"Value",unit:"Unit",scope:"Scope",occ:"Occupancy",src:"Source",ed:"Edition",date:"Date",id:"CSV row",status:"Status"},
     uPkm:"estimated kg CO₂e/pkm", uVkm:"estimated kg CO₂e/vehicle-km", life:"life cycle", direct:"direct emissions only", srcOk:"source given", srcMiss:"missing source",
     refRow:"Reference car (petrol)", srcNote:"Source texts are in Norwegian. All figures retrieved 2026-11-02 from utslippsfaktorer_YTM (v2).",
-    privacy:"Test version. No login, no server, no tracking. Data is stored only in your browser.",
-    exLabels:{ex1:"Example: work trip by electric car",ex2:"Example: city bus into town",ex3:"Example: flight",ex4:"Example: home office"}
+    privacy:"Sketch v2: login, server and storage are not built. Nothing is stored here.",
+    exLabels:{ex1:"Example: work trip by electric car",ex2:"Example: city bus into town",ex3:"Example: flight",ex4:"Example: home office",ex5:"Example: old trip from the test site"},
+    r9:"<b>Work and Private</b> use the same factors. Private trips are never part of the company’s figures, leaderboard or export. How commuting should be labelled has not been decided.",
+    s0:"Purpose", tabAccount:"Account",
+    skAuth:"SKETCH", skAuthText:"This is not a real login. Nothing is sent or stored. Clerk will only be used when this is built.",
+    loginH:"Log in", email:"Email", pass:"Password", emailPh:"name@company.example", loginBtn:"Log in (sketch)",
+    noAcct:"No account yet?", toRegister:"Create account", haveAcct:"Already have an account?", toLogin:"Log in",
+    methodOpen:"Open question: login method (Microsoft account or BankID) is not decided. The fields here are placeholders only.",
+    demoTitle:"Sketch: view the prototype as", demoCompany:"Company user (Eksempel AS)", demoPerson:"Private person",
+    regH:"Create account", acctType:"What kind of account?", tCompany:"Company", tCompanySub:"For employees of a company. Your work trips count in the company’s figures.",
+    tPerson:"Private person", tPersonSub:"Own account without a company. You can join a company later and keep your trips.",
+    optCreate:"Create company", optCreateSub:"You become administrator and can invite colleagues (proposal).", optJoin:"Join with invitation code", optJoinSub:"You get the code from the company’s administrator.",
+    firmName:"Company name", firmPh:"E.g. Eksempel AS", code:"Invitation code", codePh:"XXXX-XXXX",
+    joinNote:"The request waits for approval from the company’s administrator. You get no access to the company until it is approved.",
+    personNote:"You can join a company later, under Account. Your trips are kept.",
+    name:"Name", namePh:"E.g. Kari Eksempel", regBtn:"Create account (sketch)", regBtnJoin:"Send request (sketch)", needType:"Choose an account type to continue.",
+    defaultWork:"Default for new trips: Work", defaultPriv:"Default for new trips: Private", noValid:"Sketch: the fields are not validated.",
+    pendH:"Waiting for approval", pendText:"Your request has been sent to the company’s administrator (sketch). You get access once it is approved.",
+    pendDemo:"View the prototype as an approved company user", pendOut:"Back to login",
+    pH:"What kind of trip is this?", pWork:"Work", pWorkSub:"Trip for work", pPriv:"Private", pPrivSub:"Trip in your free time",
+    preWork:"Preselected: Work (default for company accounts). You can change it per trip.", prePriv:"Preselected: Private (default for private accounts). You can change it per trip.",
+    privTitle:"Privacy", privText:"Private trips are only visible to you. They are never part of the company’s figures, leaderboard or export.",
+    privWorkCo:"Work trips count in the company’s figures.", privWorkPe:"You are not in a company. Nobody else sees your trips.",
+    commuteH:"Open question: commuting", commuteText:"Should commuting (home–work) count as Work, as Private or as its own category? Not decided. For now you choose.",
+    purposeLabel:"Purpose", onlyYouTrip:"Only you see this trip.", firmSeesTrip:"Counts in the company’s figures.",
+    gWork:"Work", gPriv:"Private", gNone:"Not specified",
+    visWorkCo:"Counts in the company’s figures.", visWorkPe:"Not shared: you are not in a company.", visPriv:"Only you see this. Never part of the company’s figures, leaderboard or export.",
+    visNone:"Old trips from the test site have no purpose. Proposal: they do not count in the company’s figures until you label them (open question).",
+    markWork:"Work", markPriv:"Private", markAria:"Mark as", emptyG:"No trips here yet.",
+    loggedAs:"Logged in as", sketchLogin:"(sketch)", acctH:"Account", acctTypeL:"Account type", nameL:"Name", emailL:"Email", firmL:"Company", roleL:"Role", statusL:"Status",
+    roleEmp:"Employee", roleAdmin:"Administrator", noFirm:"No company", active:"Active", pendingS:"Waiting for approval",
+    joinH:"Join a company", joinText:"You keep your trips. Private trips are still only visible to you.", joinBtn:"Send request (sketch)", joinSent:"Request sent. Waiting for approval.",
+    logout:"Log out", savedAs:(p)=>"Trip saved as "+p+" (prototype only)."
   }
 };
 
@@ -273,7 +375,17 @@ const ICON = {
   plus: svg('<path d="M12 5v14M5 12h14"/>', 22),
   arrowR: svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 22),
   up: svg('<path d="M12 19V5M6 11l6-6 6 6"/>', 24),
-  down: svg('<path d="M12 5v14M6 13l6 6 6-6"/>', 24)
+  down: svg('<path d="M12 5v14M6 13l6 6 6-6"/>', 24),
+  briefcase: svg('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/>', 30),
+  briefcaseS: svg('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/>', 22),
+  lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>', 26),
+  lockS: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>', 20),
+  user: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>', 30),
+  userS: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>', 24),
+  building: svg('<path d="M4 21V5l8-2v18M12 9h8v12M4 21h16M8 8h1M8 12h1M8 16h1M15 13h1M15 17h1"/>', 30),
+  key: svg('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>', 26),
+  clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', 30),
+  plusC: svg('<path d="M12 5v14M5 12h14"/>', 26)
 };
 const modeIcon = m => ({walking:ICON.walking,bicycle:ICON.bicycle,e_scooter:ICON.e_scooter,electric_car:ICON.car,hybrid_car:ICON.car,gasoline_car:ICON.car,diesel_car:ICON.car,
   city_bus:ICON.bus,regional_bus:ICON.bus,electric_train:ICON.train,diesel_train:ICON.train,train_unknown:ICON.train,airplane:ICON.airplane,ferry:ICON.ferry,other:ICON.other,home_office:ICON.home})[m];
@@ -305,22 +417,25 @@ const t = () => T[S.lang];
 
 /* ===== State ===== */
 function exampleTrips(){
-  const mk = (id, key, kind, segs, ret, commute) => {
+  const mk = (id, key, purpose, kind, segs, ret, commute) => {
     const r = kind === "home" ? calcHome(commute, ret) : calcTrip(segs.map(s=>({mode:s[0],km:s[1]})), ret);
-    return {id, example:true, key, kind, segs:(segs||[]).map(s=>({mode:s[0],km:s[1]})), ret, commute, r};
+    return {id, example:true, key, purpose, kind, segs:(segs||[]).map(s=>({mode:s[0],km:s[1]})), ret, commute, r};
   };
   return [
-    mk("e1","ex1","trip",[["electric_car",24]],true),
-    mk("e2","ex2","trip",[["city_bus",6]],false),
-    mk("e3","ex3","trip",[["airplane",400]],false),
-    mk("e4","ex4","home",null,true,15)
+    mk("e1","ex1","work","trip",[["electric_car",24]],true),
+    mk("e2","ex2","private","trip",[["city_bus",6]],false),
+    mk("e3","ex3","work","trip",[["airplane",400]],false),
+    mk("e4","ex4","work","home",null,true,15),
+    mk("e5","ex5",null,"trip",[["city_bus",13],["electric_train",40]],false)
   ];
 }
+const defaultPurpose = () => (S.account && S.account.type==="person") ? "private" : "work";
 S = { lang:"nb", theme:(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light",
-  view:"home", step:1, kind:"trip", segs:[{mode:null,km:""}], active:0, ret:false, commute:"", avoided:"return", desc:"", notice:null,
+  view:"login", account:null, reg:{type:null,cmode:"create",name:"",email:"",pw:"",firm:"",code:""}, login:{email:"",pw:""}, joinCode:"", joinPending:false,
+  step:0, purpose:"work", from2:false, kind:"trip", segs:[{mode:null,km:""}], active:0, ret:false, commute:"", avoided:"return", desc:"", notice:null,
   trips:exampleTrips(), toast:null, confirmClear:false };
 
-function resetWizard(){ Object.assign(S, {step:1, kind:"trip", segs:[{mode:null,km:""}], active:0, ret:false, commute:"", avoided:"return", desc:"", notice:null}); }
+function resetWizard(){ Object.assign(S, {step:0, purpose:defaultPurpose(), from2:false, kind:"trip", segs:[{mode:null,km:""}], active:0, ret:false, commute:"", avoided:"return", desc:"", notice:null}); }
 
 /* ===== Views ===== */
 function header(){
@@ -340,6 +455,7 @@ function tabbar(){
   return `<nav class="tabbar" aria-label="Hovedmeny"><div class="in">
     <button type="button" data-a="go" data-v="home" ${S.view==="home"?'aria-current="page"':""}>${ICON.home2}${esc(L.tabHome)}</button>
     <button type="button" data-a="go" data-v="method" ${S.view==="method"?'aria-current="page"':""}>${ICON.book}${esc(L.tabMethod)}</button>
+    <button type="button" data-a="go" data-v="account" ${S.view==="account"?'aria-current="page"':""}>${ICON.userS}${esc(L.tabAccount)}</button>
   </div></nav>`;
 }
 function tripTitle(tr){
@@ -353,34 +469,149 @@ function tripSub(tr){
   if (tr.kind === "home") return `${L.avoided}: ${fmtKm(tr.r.avoided)} ${L.km}`;
   return `${tr.segs.map(s=>modeName(s.mode,S.lang)+" "+fmtKm(s.km)+" "+L.km).join(" + ")}${tr.ret?" · "+L.roundTrip.toLowerCase():""}`;
 }
-function viewHome(){
+const purposeName = p => p==="work" ? t().gWork : p==="private" ? t().gPriv : t().gNone;
+function tripRow(tr, mark){
   const L = t();
-  const tot = S.trips.reduce((a,x)=>({em:a.em+x.r.em, sv:a.sv+x.r.save}), {em:0, sv:0});
-  const anyEx = S.trips.some(x=>x.example);
-  const list = S.trips.map(tr => `<div class="trip">
+  const mk = mark ? `<div class="mark" role="group" aria-label="${esc(L.markAria)}: ${esc(tripTitle(tr))}">
+      <button type="button" class="btn secondary small" data-a="mark" data-v="work" data-id="${tr.id}" aria-label="${esc(L.markAria+" "+L.gWork+": "+tripTitle(tr))}">${esc(L.markWork)}</button>
+      <button type="button" class="btn secondary small" data-a="mark" data-v="private" data-id="${tr.id}" aria-label="${esc(L.markAria+" "+L.gPriv+": "+tripTitle(tr))}">${esc(L.markPriv)}</button></div>` : "";
+  return `<div class="trip">
       <div class="ic">${modeIcon(tr.kind==="home"?"home_office":tr.segs[0].mode)}</div>
-      <div class="body"><div class="t">${esc(tripTitle(tr))} ${tr.example?`<span class="tag ex">${esc(L.example)}</span>`:""}</div><div class="muted small">${esc(tripSub(tr))}</div></div>
+      <div class="body"><div class="t">${esc(tripTitle(tr))} ${tr.example?`<span class="tag ex">${esc(L.example)}</span>`:""}</div><div class="muted small">${esc(tripSub(tr))}</div>${mk}</div>
       <div class="r"><div class="t">${fmtKg(tr.r.em)}</div><div class="unit">${esc(L.estKgShort)}</div>
         <div class="${tr.r.save<0?"neg":"pos"} small">${tr.r.save<0?"▼":"▲"} ${fmtKg(tr.r.save)}</div></div>
-    </div>`).join("");
-  return `<main id="main">
-    <h1 id="h">Carboncut</h1>
-    <p class="muted">${esc(L.tagline)}</p>
-    <button type="button" class="btn hero" data-a="start">${ICON.plus}${esc(L.register)}</button>
-    <h3>${esc(L.overview)}${anyEx?` <span class="tag ex">${esc(L.overviewEx)}</span>`:""}</h3>
-    <div class="card"><div class="stats">
+    </div>`;
+}
+function groupCard(p){
+  const L = t(); const list = S.trips.filter(x => (x.purpose||null) === p);
+  if (p===null && !list.length) return "";
+  const tot = list.reduce((a,x)=>({em:a.em+x.r.em, sv:a.sv+x.r.save}), {em:0, sv:0});
+  const company = S.account && S.account.type==="company";
+  const icon = p==="work" ? ICON.briefcaseS : p==="private" ? ICON.lockS : ICON.other;
+  const tagc = p==="work" ? "work" : p==="private" ? "priv" : "none";
+  const vis = p==="work" ? (company?L.visWorkCo:L.visWorkPe) : p==="private" ? L.visPriv : L.visNone;
+  const gid = "g-"+(p||"none");
+  return `<section class="card" aria-labelledby="${gid}">
+    <div class="ghead"><h2 id="${gid}">${icon}<span>${esc(purposeName(p))}</span></h2><span class="tag ${tagc}">${esc(L.tripsN(list.length))}</span></div>
+    <p class="vis">${p==="private"?ICON.lockS:""}<span>${esc(vis)}</span></p>
+    <div class="stats">
       <div class="stat wide"><div class="l">${esc(L.totalEm)}</div><div class="v">${fmtKg(tot.em)} <span class="unit">${esc(L.estKg)}</span></div></div>
       <div class="stat"><div class="l">${esc(L.totalSave)}</div><div class="v ${tot.sv<0?"neg":""}">${fmtKg(tot.sv)}</div><div class="unit">${esc(L.estKg)}</div></div>
-      <div class="stat"><div class="l">${esc(L.trips)}</div><div class="v">${S.trips.length}</div><div class="unit">${esc(L.tripsN(S.trips.length))}</div></div>
-    </div></div>
+      <div class="stat"><div class="l">${esc(L.trips)}</div><div class="v">${list.length}</div><div class="unit">${esc(L.tripsN(list.length))}</div></div>
+    </div>
     <h3>${esc(L.latest)}</h3>
-    <div class="card">${list || `<p class="muted">${esc(L.noTrips)}</p>`}</div>
-    ${S.trips.length?`<button type="button" class="btn secondary small" data-a="clear">${esc(S.confirmClear?L.clearConfirm:L.clearAll)}</button>`:""}
+    ${list.length ? list.map(tr=>tripRow(tr, p===null)).join("") : `<p class="muted">${esc(L.emptyG)}</p>`}
+  </section>`;
+}
+function acctTag(){
+  const L = t(), a = S.account; if (!a) return "";
+  return a.type==="company" ? `<span class="tag work">${esc(L.tCompany)}</span> <span class="small">${esc(a.firm)}</span>` : `<span class="tag priv">${esc(L.tPerson)}</span>`;
+}
+function viewHome(){
+  const L = t();
+  const anyEx = S.trips.some(x=>x.example);
+  return `<main id="main">
+    <h1 id="h" tabindex="-1">Carboncut</h1>
+    <p class="muted">${esc(L.tagline)}</p>
+    <p class="small muted">${esc(L.loggedAs)}: <b>${esc(S.account.name)}</b> ${esc(L.sketchLogin)} · ${acctTag()}</p>
+    <button type="button" class="btn hero" data-a="start">${ICON.plus}${esc(L.register)}</button>
+    <h3>${esc(L.overview)}${anyEx?` <span class="tag ex">${esc(L.overviewEx)}</span>`:""}</h3>
+    ${groupCard("work")}${groupCard("private")}${groupCard(null)}
+    ${S.trips.length?`<button type="button" class="btn secondary small" data-a="clear">${esc(S.confirmClear?L.clearConfirm:L.clearAll)}</button>`:`<p class="muted">${esc(L.noTrips)}</p>`}
+  </main>`;
+}
+function sketchNote(){ const L=t(); return `<div class="notice sketch" role="note"><span class="tag sk">${esc(L.skAuth)}</span> ${esc(L.skAuthText)}</div>`; }
+function viewLogin(){
+  const L = t();
+  return `<main id="main" style="padding-bottom:32px"><h1 id="h" tabindex="-1">${esc(L.loginH)}</h1>${sketchNote()}
+    <div class="card">
+      <div class="f field"><label for="lemail">${esc(L.email)}</label><div class="inp txt"><input id="lemail" type="text" inputmode="email" autocomplete="off" data-in="lemail" value="${esc(S.login.email)}" placeholder="${esc(L.emailPh)}"></div></div>
+      <div class="f field"><label for="lpw">${esc(L.pass)}</label><div class="inp txt"><input id="lpw" type="password" autocomplete="off" data-in="lpw" value="${esc(S.login.pw)}" placeholder="••••••••"></div></div>
+      <button type="button" class="btn" data-a="demo" data-v="company">${esc(L.loginBtn)}</button>
+    </div>
+    <div class="notice open" role="note"><b>${esc(L.methodOpen)}</b></div>
+    <div class="card"><h2>${esc(L.noAcct)}</h2><button type="button" class="btn secondary" data-a="toreg">${ICON.plusC}${esc(L.toRegister)}</button></div>
+    <div class="card"><h2>${esc(L.demoTitle)}</h2>
+      <div class="optrow" style="margin:0">
+        <button type="button" class="btn secondary" data-a="demo" data-v="company">${ICON.building}${esc(L.demoCompany)}</button>
+        <button type="button" class="btn secondary" data-a="demo" data-v="person">${ICON.user}${esc(L.demoPerson)}</button>
+      </div></div>
+  </main>`;
+}
+function viewRegister(){
+  const L = t(), R = S.reg;
+  const typeBtn = (v, icon, name, sub) => `<button type="button" class="opt" role="radio" aria-checked="${R.type===v}" data-a="acct" data-v="${v}">${icon}<span><span class="name">${esc(name)}</span><span class="sub">${esc(sub)}</span></span></button>`;
+  let more = "";
+  if (R.type==="company"){
+    const o = (v,name,sub) => `<button type="button" class="opt small" role="radio" aria-checked="${R.cmode===v}" data-a="cmode" data-v="${v}"><span><span class="name">${esc(name)}</span><span class="sub">${esc(sub)}</span></span></button>`;
+    more = `<div class="optrow" role="radiogroup" aria-label="${esc(L.tCompany)}">${o("create",L.optCreate,L.optCreateSub)}${o("join",L.optJoin,L.optJoinSub)}</div>`
+      + (R.cmode==="create"
+        ? `<div class="f field"><label for="rfirm">${esc(L.firmName)}</label><div class="inp txt"><input id="rfirm" type="text" autocomplete="off" data-in="rfirm" value="${esc(R.firm)}" placeholder="${esc(L.firmPh)}"></div></div>`
+        : `<div class="f field"><label for="rcode">${esc(L.code)}</label><div class="inp txt"><input id="rcode" type="text" autocomplete="off" data-in="rcode" value="${esc(R.code)}" placeholder="${esc(L.codePh)}"></div></div>
+           <div class="notice" role="note">${ICON.clock.replace('width="30" height="30"','width="20" height="20"')} ${esc(L.joinNote)}</div>`);
+  } else if (R.type==="person"){
+    more = `<div class="notice" role="note">${esc(L.personNote)}</div>`;
+  }
+  const defLine = R.type ? `<p class="muted small">${esc(R.type==="company"?L.defaultWork:L.defaultPriv)}</p>` : "";
+  const btnTxt = (R.type==="company" && R.cmode==="join") ? L.regBtnJoin : L.regBtn;
+  return `<main id="main" style="padding-bottom:32px"><h1 id="h" tabindex="-1">${esc(L.regH)}</h1>${sketchNote()}
+    <div class="notice open" role="note"><b>${esc(L.methodOpen)}</b></div>
+    <div class="lbl" id="acctlbl">${esc(L.acctType)}</div>
+    <div class="optrow" role="radiogroup" aria-labelledby="acctlbl">
+      ${typeBtn("company",ICON.building,L.tCompany,L.tCompanySub)}${typeBtn("person",ICON.user,L.tPerson,L.tPersonSub)}
+    </div>
+    ${more}${defLine}
+    <div class="card">
+      <div class="f field"><label for="rname">${esc(L.name)}</label><div class="inp txt"><input id="rname" type="text" autocomplete="off" data-in="rname" value="${esc(R.name)}" placeholder="${esc(L.namePh)}"></div></div>
+      <div class="f field"><label for="remail">${esc(L.email)}</label><div class="inp txt"><input id="remail" type="text" inputmode="email" autocomplete="off" data-in="remail" value="${esc(R.email)}" placeholder="${esc(L.emailPh)}"></div></div>
+      <div class="f field" style="margin:0"><label for="rpw">${esc(L.pass)}</label><div class="inp txt"><input id="rpw" type="password" autocomplete="off" data-in="rpw" value="${esc(R.pw)}" placeholder="••••••••"></div></div>
+    </div>
+    <button type="button" class="btn" data-a="regsubmit" ${R.type?"":'disabled aria-describedby="rhint"'}>${esc(btnTxt)}</button>
+    <p class="muted small" id="rhint" aria-live="polite" style="margin-top:8px">${esc(R.type?L.noValid:L.needType)}</p>
+    <div class="card" style="margin-top:12px"><h2>${esc(L.haveAcct)}</h2><button type="button" class="btn secondary" data-a="tologin">${esc(L.toLogin)}</button></div>
+  </main>`;
+}
+function viewPending(){
+  const L = t();
+  return `<main id="main" style="padding-bottom:32px"><h1 id="h" tabindex="-1">${esc(L.pendH)}</h1>${sketchNote()}
+    <div class="card"><div style="display:flex;gap:12px;align-items:flex-start"><span style="color:var(--primary)">${ICON.clock}</span><p style="margin:0;font-weight:700">${esc(L.pendText)}</p></div></div>
+    <div class="optrow"><button type="button" class="btn secondary" data-a="pendingdemo">${esc(L.pendDemo)}</button>
+    <button type="button" class="btn secondary" data-a="logout">${esc(L.pendOut)}</button></div>
+  </main>`;
+}
+function viewAccount(){
+  const L = t(), a = S.account, co = a.type==="company";
+  const join = co ? "" : `<div class="card"><h2>${esc(L.joinH)}</h2><p>${esc(L.joinText)}</p>
+      ${S.joinPending ? `<div class="notice" role="status">${ICON.clock.replace('width="30" height="30"','width="20" height="20"')} ${esc(L.joinSent)}</div>`
+      : `<div class="f field"><label for="jcode">${esc(L.code)}</label><div class="inp txt"><input id="jcode" type="text" autocomplete="off" data-in="jcode" value="${esc(S.joinCode)}" placeholder="${esc(L.codePh)}"></div></div>
+      <button type="button" class="btn secondary" data-a="joinreq">${ICON.key}${esc(L.joinBtn)}</button>`}</div>`;
+  return `<main id="main"><h1 id="h" tabindex="-1">${esc(L.acctH)}</h1>${sketchNote()}
+    <div class="card"><dl class="kv">
+      <dt>${esc(L.acctTypeL)}</dt><dd>${esc(co?L.tCompany:L.tPerson)}</dd>
+      <dt>${esc(L.nameL)}</dt><dd>${esc(a.name)}</dd>
+      <dt>${esc(L.emailL)}</dt><dd>${esc(a.email)}</dd>
+      <dt>${esc(L.firmL)}</dt><dd>${esc(co?a.firm:L.noFirm)}</dd>
+      ${co?`<dt>${esc(L.roleL)}</dt><dd>${esc(a.role==="admin"?L.roleAdmin:L.roleEmp)}</dd>`:""}
+      <dt>${esc(L.statusL)}</dt><dd>${esc(S.joinPending?L.pendingS:L.active)}</dd>
+    </dl></div>
+    ${join}
+    <div class="privacy" role="note">${ICON.lock}<div><b>${esc(L.privTitle)}</b><br>${esc(L.privText)}</div></div>
+    <button type="button" class="btn secondary" data-a="logout">${esc(L.logout)}</button>
+  </main>`;
+}
+function viewStep0(){
+  const L = t(); const co = S.account.type==="company";
+  const pb = (v, icon, name, sub) => `<button type="button" class="pbtn" role="radio" aria-checked="${S.purpose===v}" data-a="purpose" data-v="${v}">${icon}<span><span class="name">${esc(name)}</span><br><span class="sub">${esc(sub)}</span></span></button>`;
+  return `<main id="main">${stepper()}<h1 id="h" tabindex="-1">${esc(L.pH)}</h1>
+    <div class="pgrid" role="radiogroup" aria-label="${esc(L.pH)}">${pb("work",ICON.briefcase,L.pWork,L.pWorkSub)}${pb("private",ICON.lock.replace('width="26" height="26"','width="30" height="30"'),L.pPriv,L.pPrivSub)}</div>
+    <p class="muted small">${esc(co?L.preWork:L.prePriv)}</p>
+    <div class="privacy" role="note">${ICON.lock}<div><b>${esc(L.privTitle)}</b><br>${esc(L.privText)}<br><span class="muted small">${esc(co?L.privWorkCo:L.privWorkPe)}</span></div></div>
+    <div class="notice open" role="note"><b>${esc(L.commuteH)}</b><br>${esc(L.commuteText)}</div>
   </main>`;
 }
 function stepper(){
-  const L = t(); const names = [L.s1,L.s2,L.s3];
-  return `<ol class="steps" aria-label="${esc(L.step(S.step,3))}">${names.map((n,i)=>`<li ${S.step===i+1?'aria-current="step"':""} class="${S.step>i+1?"done":""}"><span class="sr">${esc(L.step(i+1,3))}: </span>${i+1}. ${esc(n)}</li>`).join("")}</ol>`;
+  const L = t(); const names = [L.s0,L.s1,L.s2,L.s3];
+  return `<ol class="steps" aria-label="${esc(L.step(S.step+1,4))}">${names.map((n,i)=>`<li ${S.step===i?'aria-current="step"':""} class="${S.step>i?"done":""}"><span class="sr">${esc(L.step(i+1,4))}: </span>${i+1}. ${esc(n)}</li>`).join("")}</ol>`;
 }
 function tile(m){
   const L = t(); const ok = isOk(m); const f = factorOf(m);
@@ -399,7 +630,7 @@ function viewStep1(){
   const adding = S.segs.length > 1 || S.active > 0;
   const heading = adding ? L.s1hSeg(S.active+1) : L.s1h;
   const groups = GROUPS.map(([k,ms]) => `<h3>${esc(L[k])}</h3><div class="grid2">${ms.map(tile).join("")}</div>`).join("");
-  const home = S.segs.length === 1 ? `<h3>${esc(L.gNot)}</h3><div class="grid2"><button type="button" class="tile wide" data-a="pick" data-v="home_office" aria-pressed="${S.kind==="home"}">${modeIcon("home_office")}<span><span class="name">${esc(modeName("home_office",S.lang))}</span><br><span class="sub">${esc(L.homeSub)}</span></span></button></div>` : "";
+  const home = (S.segs.length === 1 && S.purpose==="work") ? `<h3>${esc(L.gNot)}</h3><div class="grid2"><button type="button" class="tile wide" data-a="pick" data-v="home_office" aria-pressed="${S.kind==="home"}">${modeIcon("home_office")}<span><span class="name">${esc(modeName("home_office",S.lang))}</span><br><span class="sub">${esc(L.homeSub)}</span></span></button></div>` : "";
   const note = S.notice ? `<div class="notice" role="status">${esc(S.notice)}</div>` : "";
   return `<main id="main">${stepper()}<h1 id="h" tabindex="-1">${esc(heading)}</h1>${note}${groups}${home}</main>`;
 }
@@ -458,7 +689,9 @@ function viewStep3(){
       <div class="muted small">${fmtKm(home?r.avoided:r.dist)} ${esc(L.km)} × ${fmtF(REFKM)} ${esc(L.perKm)}</div></div>
       <div class="r"><div class="t">${fmtKg(r.base)}</div><div class="unit">${esc(L.estKgShort)}</div></div></div>`;
   const hasFerry = !home && r.rows.some(x=>x.mode==="ferry");
+  const pw = S.purpose==="work";
   return `<main id="main">${stepper()}<h1 id="h" tabindex="-1">${esc(home?L.s3hHome:L.s3h)}</h1>
+    <p><span class="tag ${pw?"work":"priv"}">${pw?ICON.briefcaseS.replace('width="22" height="22"','width="14" height="14"'):ICON.lockS.replace('width="20" height="20"','width="14" height="14"')} ${esc(L.purposeLabel)}: ${esc(pw?L.gWork:L.gPriv)}</span> <span class="muted small">${esc(pw?(S.account.type==="company"?L.firmSeesTrip:L.privWorkPe):L.onlyYouTrip)}</span></p>
     <div class="card" aria-live="polite">
       <div class="big">${fmtKg(r.em)}</div><div class="unit" style="font-size:17px">${esc(L.estKg)}</div>
       <div class="muted small" style="margin-top:4px">${home?`${esc(L.avoided)}: ${fmtKm(r.avoided)} ${esc(L.km)}`:`${fmtKm(r.dist)} ${esc(L.km)}`}</div>
@@ -477,9 +710,12 @@ function viewStep3(){
 }
 function actionbar(){
   const L = t(); let left, right, hint = "";
-  if (S.step===1){
+  if (S.step===0){
+    left = `<button type="button" class="btn secondary" data-a="cancel">${esc(L.cancel)}</button>`;
+    right = `<button type="button" class="btn" data-a="next">${esc(L.next)}${ICON.arrowR}</button>`;
+  } else if (S.step===1){
     const adding = S.segs.length>1 && !S.segs[S.active].mode;
-    left = `<button type="button" class="btn secondary" data-a="${adding?"cancelLeg":"cancel"}">${esc(adding?L.back:L.cancel)}</button>`;
+    left = `<button type="button" class="btn secondary" data-a="${adding?"cancelLeg":"prev"}">${esc(L.back)}</button>`;
     const can = S.kind==="home" || (S.segs[S.active] && S.segs[S.active].mode);
     right = `<button type="button" class="btn" data-a="next" ${can?"":'disabled aria-describedby="hint"'}>${esc(L.next)}${ICON.arrowR}</button>`;
     if (!can) hint = L.noSel;
@@ -516,7 +752,7 @@ function viewMethod(){
   const head = `<thead><tr>${["mode","val","unit","scope","occ","src","ed","date","id","status"].map(k=>`<th scope="col">${esc(th[k])}</th>`).join("")}</tr></thead>`;
   return `<main id="main"><h1 id="h" tabindex="-1">${esc(L.mTitle)}</h1>
     <div class="narrow"><p>${esc(L.mIntro)}</p><p><span class="tag">${esc(L.factorVer)} ${FV}</span> <span class="muted small">${esc(L.mFactor)}</span></p>
-    <h3>${esc(L.rules)}</h3><ul class="rules">${["r1","r2","r3","r4","r5","r6","r7","r8"].map(k=>`<li>${L[k]}</li>`).join("")}</ul>
+    <h3>${esc(L.rules)}</h3><ul class="rules">${["r1","r2","r3","r4","r5","r6","r7","r8","r9"].map(k=>`<li>${L[k]}</li>`).join("")}</ul>
     <h3>${esc(L.exTitle)} <span class="tag ex">${esc(L.example)}</span></h3>
     <div class="card"><b>${esc(L.exText)}</b><br>10 ${esc(L.km)} × ${fmtF(perPkm("electric_car"))} = <b>${fmtKg(ex.em)}</b> ${esc(L.estKg)}<br>
     10 ${esc(L.km)} × ${fmtF(REFKM)} = <b>${fmtKg(ex.base)}</b> ${esc(L.estKg)} (${esc(L.refCar)})<br>
@@ -530,13 +766,22 @@ function viewMethod(){
 /* ===== Render ===== */
 function render(focus){
   const doc = document.documentElement; doc.lang = S.lang; doc.dataset.theme = S.theme;
-  document.title = "Carboncut – " + (S.lang==="nb" ? "skisser v1 (klikkbar prototype)" : "sketches v1 (clickable prototype)");
+  document.title = "Carboncut – " + (S.lang==="nb" ? "skisser v2 (klikkbar prototype)" : "sketches v2 (clickable prototype)");
   let body, bar = "";
-  if (S.view==="home"){ body = viewHome(); bar = tabbar(); }
+  if (S.view==="login"){ body = viewLogin(); }
+  else if (S.view==="register"){ body = viewRegister(); }
+  else if (S.view==="pending"){ body = viewPending(); }
+  else if (S.view==="home"){ body = viewHome(); bar = tabbar(); }
   else if (S.view==="method"){ body = viewMethod(); bar = tabbar(); }
-  else { body = S.step===1?viewStep1():S.step===2?viewStep2():viewStep3(); bar = actionbar(); }
+  else if (S.view==="account"){ body = viewAccount(); bar = tabbar(); }
+  else { body = S.step===0?viewStep0():S.step===1?viewStep1():S.step===2?viewStep2():viewStep3(); bar = actionbar(); }
   document.getElementById("root").innerHTML = header() + body + bar + (S.toast?`<div class="toast" role="status">${esc(S.toast)}</div>`:"");
   if (focus){ const h = document.getElementById("h"); if (h){ h.setAttribute("tabindex","-1"); h.focus({preventScroll:true}); window.scrollTo(0,0);} }
+}
+function refocus(sel){ const b = document.querySelector(sel); if (b) b.focus({preventScroll:true}); }
+function loginAs(type, role){
+  S.account = type==="company" ? {type, name:"Kari Eksempel", email:"kari@firma.example", firm:"Eksempel AS", role:role||"employee"} : {type, name:"Ola Eksempel", email:"ola@privat.example", firm:null, role:null};
+  S.joinPending = false; resetWizard(); S.view = "home"; render(true);
 }
 function go(view, step){ S.view = view; if (step) S.step = step; S.confirmClear = false; render(true); }
 function updateStep2Live(){
@@ -554,17 +799,34 @@ document.addEventListener("click", e => {
   else if (a==="theme"){ S.theme = S.theme==="dark"?"light":"dark"; render(); }
   else if (a==="go"){ resetWizard(); go(v); }
   else if (a==="method"){ e.preventDefault(); S.view="method"; render(true); }
-  else if (a==="start"){ resetWizard(); S.view="wizard"; S.step=1; render(true); }
+  else if (a==="start"){ resetWizard(); S.view="wizard"; S.step=0; render(true); }
+  else if (a==="demo"){ loginAs(v); }
+  else if (a==="toreg"){ S.view="register"; render(true); }
+  else if (a==="tologin"){ S.view="login"; render(true); }
+  else if (a==="acct"){ S.reg.type = v; render(); refocus('[data-a="acct"][data-v="'+v+'"]'); }
+  else if (a==="cmode"){ S.reg.cmode = v; render(); refocus('[data-a="cmode"][data-v="'+v+'"]'); }
+  else if (a==="regsubmit"){ if (el.disabled) return;
+    if (S.reg.type==="company" && S.reg.cmode==="join"){ S.view="pending"; render(true); }
+    else if (S.reg.type==="company"){ loginAs("company","admin"); }
+    else { loginAs("person"); } }
+  else if (a==="pendingdemo"){ loginAs("company"); }
+  else if (a==="logout"){ S.account=null; S.joinPending=false; S.view="login"; render(true); }
+  else if (a==="joinreq"){ S.joinPending = true; render(); }
+  else if (a==="purpose"){ S.purpose = v; if (v==="private" && S.kind==="home"){ S.kind="trip"; } render(); refocus('[data-a="purpose"][data-v="'+v+'"]'); }
+  else if (a==="mark"){ const tr = S.trips.find(x=>x.id===el.dataset.id); if (tr){ tr.purpose = v; } render(); refocus('h1'); }
   else if (a==="cancel"){ resetWizard(); go("home"); }
   else if (a==="cancelLeg"){ S.segs.pop(); S.active = S.segs.length-1; S.notice=null; S.step=2; render(true); }
   else if (a==="pick"){
-    if (v==="home_office"){ S.kind="home"; S.segs=[{mode:null,km:""}]; S.active=0; S.notice=null; S.step=2; render(true); return; }
+    if (v==="home_office"){ S.kind="home"; S.purpose="work"; S.segs=[{mode:null,km:""}]; S.active=0; S.notice=null; S.step=2; S.from2=false; render(true); return; }
     if (!isOk(v)){ S.notice = L.missingMsg(modeName(v,S.lang)); render(); const h=document.getElementById("h"); if(h) h.focus({preventScroll:true}); return; }
-    S.kind="trip"; S.segs[S.active].mode = v; S.notice = null; S.step = 2; render(true);
+    S.kind="trip"; S.segs[S.active].mode = v; S.notice = null; S.step = 2; S.from2=false; render(true);
   }
-  else if (a==="next"){ if (el.disabled) return; if (S.step===1){ S.step=2; } else if (S.step===2){ S.step=3; } render(true); }
-  else if (a==="prev"){ S.step = Math.max(1, S.step-1); S.notice=null; if (S.step===1) S.active = Math.min(S.active, S.segs.length-1); render(true); }
-  else if (a==="change"){ S.active = i; S.notice=null; S.step = 1; render(true); }
+  else if (a==="next"){ if (el.disabled) return; S.step = Math.min(3, S.step+1); render(true); }
+  else if (a==="prev"){
+    if (S.step===1 && S.from2){ S.from2=false; S.step=2; }
+    else { S.step = Math.max(0, S.step-1); S.from2=false; }
+    S.notice=null; if (S.step===1) S.active = Math.min(S.active, S.segs.length-1); render(true); }
+  else if (a==="change"){ S.active = i; S.notice=null; S.step = 1; S.from2=true; render(true); }
   else if (a==="rm"){ S.segs.splice(i,1); S.active = 0; render(); }
   else if (a==="addleg"){ S.segs.push({mode:null,km:""}); S.active = S.segs.length-1; S.kind="trip"; S.step=1; S.notice=null; render(true); }
   else if (a==="ret"){ S.ret = !S.ret; render(); const b=document.querySelector('[data-a="ret"]'); if(b) b.focus(); }
@@ -577,8 +839,9 @@ document.addEventListener("click", e => {
   }
   else if (a==="save"){
     const r = currentResult();
-    S.trips.unshift({id:"t"+Date.now(), example:false, kind:S.kind, segs:S.kind==="trip"?S.segs.map(s=>({mode:s.mode,km:parseNum(s.km)})):[], ret:S.kind==="home"?S.avoided==="return":S.ret, commute:parseNum(S.commute), desc:S.desc.trim(), r});
-    resetWizard(); S.view="home"; S.toast = L.saved; render(true); setTimeout(()=>{ S.toast=null; if (S.view==="home") render(); }, 2600);
+    const pu = S.kind==="home" ? "work" : S.purpose;
+    S.trips.unshift({id:"t"+Date.now(), example:false, purpose:pu, kind:S.kind, segs:S.kind==="trip"?S.segs.map(s=>({mode:s.mode,km:parseNum(s.km)})):[], ret:S.kind==="home"?S.avoided==="return":S.ret, commute:parseNum(S.commute), desc:S.desc.trim(), r});
+    resetWizard(); S.view="home"; S.toast = L.savedAs(pu==="work"?L.gWork:L.gPriv); render(true); setTimeout(()=>{ S.toast=null; const el=document.querySelector(".toast"); if (el) el.remove(); }, 2600);
   }
   else if (a==="clear"){
     if (!S.confirmClear){ S.confirmClear = true; render(); setTimeout(()=>{ if (S.confirmClear){ S.confirmClear=false; if (S.view==="home") render(); } }, 4000); }
@@ -590,6 +853,8 @@ document.addEventListener("input", e => {
   if (el.dataset.in==="km"){ S.segs[+el.dataset.i].km = el.value; updateStep2Live(); }
   else if (el.dataset.in==="commute"){ S.commute = el.value; updateStep2Live(); }
   else if (el.dataset.in==="desc"){ S.desc = el.value; }
+  else { const m = {lemail:["login","email"],lpw:["login","pw"],rname:["reg","name"],remail:["reg","email"],rpw:["reg","pw"],rfirm:["reg","firm"],rcode:["reg","code"]}[el.dataset.in];
+    if (m) S[m[0]][m[1]] = el.value; else if (el.dataset.in==="jcode") S.joinCode = el.value; }
 });
 window.addEventListener("error", e => { document.title = "JSERROR: " + e.message; });
 render();
