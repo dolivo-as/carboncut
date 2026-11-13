@@ -1,7 +1,7 @@
 import type { TripResult } from "@calc/calc";
 import type { TransportMode } from "@calc/factors";
 import { FactorInfo } from "../FactorInfo";
-import { fmtFactor, fmtKg, fmtKm } from "../format";
+import { fmtFactor, fmtKg, fmtKgPrecise, fmtKm } from "../format";
 import { PURPOSE_LABELS, type Kind, type Purpose } from "../flowLogic";
 import { MODE_LABELS } from "@calc/factors";
 import { IconBriefcase, IconUser } from "./Icons";
@@ -82,6 +82,10 @@ export function ResultCard({
       <details className="facts" style={{ marginTop: 12 }}>
         <summary>Slik er tallet regnet ut</summary>
         <div className="small" style={{ paddingTop: 8 }}>
+          <p style={{ margin: "0 0 8px" }}>
+            Utslipp {fmtKgPrecise(result.emissionsKg)} kg, bensinbil med én person {fmtKgPrecise(result.baselineKg)} kg,
+            besparelse {fmtKgPrecise(result.savingsKg)} kg CO₂e. Resultatet over er avrundet til én desimal.
+          </p>
           {Object.entries(result.snapshot.factors).map(([mode, f]) => (
             <div key={mode} className="segcard">
               <div className="n">

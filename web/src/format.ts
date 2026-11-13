@@ -1,5 +1,11 @@
+/** Resultat og oversikt: én desimal, så tallet ikke ser mer presist ut enn estimatet er. */
 export function fmtKg(n: number): string {
-  const s = Math.abs(n).toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+  const s = Math.abs(n).toLocaleString("nb-NO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return (n < 0 && s !== "0,0" ? "−" : "") + s;
+}
+/** Bare under «Slik er tallet regnet ut»: tre desimaler. */
+export function fmtKgPrecise(n: number): string {
+  const s = Math.abs(n).toLocaleString("nb-NO", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   return (n < 0 ? "−" : "") + s;
 }
 export function fmtKm(n: number): string {

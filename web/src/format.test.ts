@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fmtDate, plainFactorText } from "./format";
+import { fmtDate, fmtKg, fmtKgPrecise, plainFactorText } from "./format";
 
 describe("fmtDate", () => {
   it("viser ISO-dato som norsk dato med kort månedsnavn", () => {
@@ -17,5 +17,15 @@ describe("plainFactorText", () => {
     expect(plainFactorText("per pkm; belegg ikke oppgitt")).toBe("per person og kilometer; belegg ikke oppgitt");
     expect(plainFactorText("båt (kg fossilt CO2e/pkm)")).toBe("båt (kg fossilt CO₂e for én person som reiser 1 km)");
     expect(plainFactorText("ikke oppgitt (Ruters pkm)")).toBe("ikke oppgitt (Ruters tall per person og kilometer)");
+  });
+});
+
+describe("kg-format", () => {
+  it("viser én desimal i resultatet", () => {
+    expect(fmtKg(1.828)).toBe("1,8");
+    expect(fmtKg(-0.04)).toBe("0,0");
+  });
+  it("viser tre desimaler i utregningen", () => {
+    expect(fmtKgPrecise(1.828)).toBe("1,828");
   });
 });

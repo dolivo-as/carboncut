@@ -297,6 +297,8 @@ p { margin: 0 0 10px; }
 .tile[aria-disabled="true"] { border-style: dashed; background: var(--bg); cursor: not-allowed; }
 .tile[aria-disabled="true"] svg, .tile[aria-disabled="true"] .name { opacity: 0.6; }
 .tile.wide { grid-column: 1 / -1; min-height: 72px; flex-direction: row; align-items: center; gap: 12px; }
+.tile.wide .name { flex: 0 0 auto; overflow-wrap: normal; word-break: normal; }
+.tile.wide .sub { flex: 1 1 0; min-width: 0; }
 
 .notice {
   border-radius: 10px;
