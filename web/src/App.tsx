@@ -1,38 +1,88 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Banner } from "./Banner";
 import { Method } from "./Method";
-import { TripForm } from "./TripForm";
-import { TripList } from "./TripList";
-import { loadTrips, saveTrips, type StoredTrip } from "./storage";
+import { IconBook, IconLeaf, IconList, IconMoon, IconSun } from "./components/Icons";
+import { Overview } from "./flow/Overview";
+import { RegisterTrip } from "./flow/RegisterTrip";
+import type { Purpose } from "./flowLogic";
+import { PURPOSE_LABELS } from "./flowLogic";
+import { loadTrips, markPurpose, saveTrips, type StoredTrip } from "./storage";
+import { applyTheme, readTheme, type Theme } from "./theme";
+
+type View = "overview" | "register" | "method";
 
 export default function App() {
-  const [tab, setTab] = useState<"calc" | "method">("calc");
+  const [view, setView] = useState<View>("overview");
   const [trips, setTrips] = useState<StoredTrip[]>(() => loadTrips());
+  const [theme, setTheme] = useState<Theme>(() => (typeof document !== "undefined" && document.documentElement.dataset.theme === "dark" ? "dark" : readTheme()));
+  const [toast, setToast] = useState<string | null>(null);
+  const toastRef = useRef<HTMLDivElement>(null);
   useEffect(() => { saveTrips(trips); }, [trips]);
+  useEffect(() => { applyTheme(theme); }, [theme]);
+  useEffect(() => {
+    if (!toast) return;
+    toastRef.current?.focus();
+    const t = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(t);
+  }, [toast]);
 
-  const tabCls = (t: string) => "px-3 py-2 text-sm font-medium border-b-2 " + (tab === t ? "border-emerald-700 text-emerald-800" : "border-transparent text-slate-600");
+  function saved(trip: StoredTrip) {
+    setTrips((list) => [trip, ...list]);
+    setView("overview");
+    setToast(`Tur lagret som ${PURPOSE_LABELS[trip.purpose ?? "unspecified"]}.`);
+  }
+
+  const showTabs = view !== "register";
+
   return (
-    <>
+    <div className="shell">
       <Banner />
-      <header className="max-w-4xl mx-auto px-4 pt-4">
-        <h1 className="text-2xl font-bold">Carboncut</h1>
-        <p className="text-sm text-slate-600">Estimer utslipp fra reiser sammenlignet med en bensinbil med én person. Tallene er estimater og ikke verifisert miljøeffekt.</p>
-        <nav className="flex gap-2 mt-3 border-b border-slate-200">
-          <button className={tabCls("calc")} onClick={() => setTab("calc")}>Beregn</button>
-          <button className={tabCls("method")} onClick={() => setTab("method")}>Metode og kilder</button>
-        </nav>
+      <header className="appbar">
+        <div className="brand">
+          <IconLeaf />
+          Carboncut
+        </div>
+        <button
+          type="button"
+          className="iconbtn"
+          aria-label={theme === "dark" ? "Bytt til lys modus" : "Bytt til mørk modus"}
+          onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+        >
+          {theme === "dark" ? <IconSun /> : <IconMoon />}
+        </button>
       </header>
-      <main className="max-w-4xl mx-auto px-4 py-4 space-y-4">
-        {tab === "calc" ? (
-          <>
-            <TripForm onSave={(t) => setTrips((l) => [t, ...l])} />
-            <TripList trips={trips} onDelete={(id) => setTrips((l) => l.filter((t) => t.id !== id))} onClear={() => setTrips([])} />
-          </>
-        ) : <Method />}
+      <main className="page" style={showTabs ? undefined : { paddingBottom: 148 }}>
+        {view === "overview" && (
+          <Overview
+            trips={trips}
+            onStart={() => setView("register")}
+            onDelete={(id) => setTrips((l) => l.filter((t) => t.id !== id))}
+            onClear={() => setTrips([])}
+            onMark={(id: string, purpose: Purpose) => setTrips((l) => markPurpose(l, id, purpose))}
+          />
+        )}
+        {view === "register" && <RegisterTrip onSave={saved} onCancel={() => setView("overview")} />}
+        {view === "method" && <Method />}
       </main>
-      <footer className="max-w-4xl mx-auto px-4 pb-8 text-xs text-slate-500">
-        Testversjon. Ingen innlogging, ingen server, ingen sporing. Data lagres bare i din nettleser (localStorage).
-      </footer>
-    </>
+      {toast && (
+        <div className="toast" ref={toastRef} tabIndex={-1} role="status">
+          {toast}
+        </div>
+      )}
+      {showTabs && (
+        <nav className="tabbar" aria-label="Hovedmeny">
+          <div className="in">
+            <button type="button" aria-current={view === "overview" ? "page" : undefined} onClick={() => setView("overview")}>
+              <IconList />
+              Oversikt
+            </button>
+            <button type="button" aria-current={view === "method" ? "page" : undefined} onClick={() => setView("method")}>
+              <IconBook />
+              Metode
+            </button>
+          </div>
+        </nav>
+      )}
+    </div>
   );
 }

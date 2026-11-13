@@ -1,5 +1,6 @@
 import type { TripResult } from "@calc/calc";
 import type { TransportMode } from "@calc/factors";
+import type { Purpose } from "./flowLogic";
 
 /** Lagres kun i nettleserens localStorage. Ingen backend, ingen kall ut. */
 export interface StoredTrip {
@@ -7,6 +8,8 @@ export interface StoredTrip {
   date: string;
   description: string;
   kind: "trip" | "home_office";
+  /** Jobb eller privat. Mangler på turer lagret før formål ble påkrevd. */
+  purpose?: Purpose;
   /** Reise: etapper og tur-retur. */
   segments?: { mode: Exclude<TransportMode, "home_office">; distanceKm: number }[];
   returnTrip?: boolean;
@@ -17,6 +20,8 @@ export interface StoredTrip {
   result: TripResult;
   savedAt: string;
 }
+
+export type PurposeOrUnknown = Purpose | "unspecified";
 
 const KEY = "carboncut.trips.v1";
 
@@ -32,4 +37,22 @@ export function loadTrips(): StoredTrip[] {
 }
 export function saveTrips(trips: StoredTrip[]) {
   localStorage.setItem(KEY, JSON.stringify(trips));
+}
+
+export function purposeOf(t: StoredTrip): PurposeOrUnknown {
+  return t.purpose === "work" || t.purpose === "private" ? t.purpose : "unspecified";
+}
+
+export function groupTrips(trips: StoredTrip[]): Record<PurposeOrUnknown, StoredTrip[]> {
+  const out: Record<PurposeOrUnknown, StoredTrip[]> = { work: [], private: [], unspecified: [] };
+  for (const t of trips) out[purposeOf(t)].push(t);
+  return out;
+}
+
+export function markPurpose(trips: StoredTrip[], id: string, purpose: Purpose): StoredTrip[] {
+  return trips.map((t) => (t.id === id ? { ...t, purpose } : t));
+}
+
+export function sumSavingsKg(trips: StoredTrip[]): number {
+  return trips.reduce((s, t) => s + t.result.savingsKg, 0);
 }
