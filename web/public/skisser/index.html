@@ -526,7 +526,7 @@ function viewLogin(){
   return `<main id="main" style="padding-bottom:32px"><h1 id="h" tabindex="-1">${esc(L.loginH)}</h1>${sketchNote()}
     <div class="card">
       <div class="f field"><label for="lemail">${esc(L.email)}</label><div class="inp txt"><input id="lemail" type="text" inputmode="email" autocomplete="off" data-in="lemail" value="${esc(S.login.email)}" placeholder="${esc(L.emailPh)}"></div></div>
-      <div class="f field"><label for="lpw">${esc(L.pass)}</label><div class="inp txt"><input id="lpw" type="password" autocomplete="off" data-in="lpw" value="${esc(S.login.pw)}" placeholder="••••••••"></div></div>
+      <div class="f field"><label for="lpw">${esc(L.pass)}</label><div class="inp txt"><input id="lpw" type="text" disabled aria-disabled="true" autocomplete="off" data-in="lpw" value="" placeholder="Skisse – ikke skriv inn ekte passord / Sketch – do not enter a real password"></div></div>
       <button type="button" class="btn" data-a="demo" data-v="company">${esc(L.loginBtn)}</button>
     </div>
     <div class="notice open" role="note"><b>${esc(L.methodOpen)}</b></div>
@@ -564,7 +564,7 @@ function viewRegister(){
     <div class="card">
       <div class="f field"><label for="rname">${esc(L.name)}</label><div class="inp txt"><input id="rname" type="text" autocomplete="off" data-in="rname" value="${esc(R.name)}" placeholder="${esc(L.namePh)}"></div></div>
       <div class="f field"><label for="remail">${esc(L.email)}</label><div class="inp txt"><input id="remail" type="text" inputmode="email" autocomplete="off" data-in="remail" value="${esc(R.email)}" placeholder="${esc(L.emailPh)}"></div></div>
-      <div class="f field" style="margin:0"><label for="rpw">${esc(L.pass)}</label><div class="inp txt"><input id="rpw" type="password" autocomplete="off" data-in="rpw" value="${esc(R.pw)}" placeholder="••••••••"></div></div>
+      <div class="f field" style="margin:0"><label for="rpw">${esc(L.pass)}</label><div class="inp txt"><input id="rpw" type="text" disabled aria-disabled="true" autocomplete="off" data-in="rpw" value="" placeholder="Skisse – ikke skriv inn ekte passord / Sketch – do not enter a real password"></div></div>
     </div>
     <button type="button" class="btn" data-a="regsubmit" ${R.type?"":'disabled aria-describedby="rhint"'}>${esc(btnTxt)}</button>
     <p class="muted small" id="rhint" aria-live="polite" style="margin-top:8px">${esc(R.type?L.noValid:L.needType)}</p>
