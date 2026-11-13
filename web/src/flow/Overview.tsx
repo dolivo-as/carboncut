@@ -23,7 +23,7 @@ export function Overview({
 
   return (
     <section className="narrow">
-      <h1 tabIndex={-1}>Dine turer</h1>
+      <h1 id="oversikt-tittel" tabIndex={-1}>Dine turer</h1>
       <p className="muted">Turer i denne nettleseren, merket som jobb eller privat. Ingenting sendes noe sted.</p>
       <Button onClick={onStart} style={{ margin: "8px 0 18px" }}>Registrer tur</Button>
 
@@ -49,7 +49,7 @@ export function Overview({
                 {list.length === 0 ? <p className="muted small">Ingen turer her ennå.</p> : (
                   <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                     {list.map((t) => (
-                      <li key={t.id} className="trip">
+                      <li key={t.id} id={`trip-${t.id}`} className="trip" tabIndex={-1}>
                         <div className="body">
                           <div className="t">{fmtDate(t.date)}{t.description ? ` · ${t.description}` : t.kind === "home_office" ? " · Hjemmekontor" : ""}</div>
                           <div className="small muted">
@@ -80,11 +80,7 @@ export function Overview({
                             </div>
                           </details>
                         </div>
-                        <Button
-                          variant="danger"
-                          className="small"
-                          onClick={() => { if (confirm("Slette denne turen fra nettleseren?")) onDelete(t.id); }}
-                        >
+                        <Button variant="danger" className="small" onClick={() => onDelete(t.id)}>
                           Slett
                         </Button>
                       </li>

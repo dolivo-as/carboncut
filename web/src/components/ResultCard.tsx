@@ -87,13 +87,13 @@ export function ResultCard({
               <div className="n">
                 {MODE_LABELS[mode as TransportMode]?.nb ?? mode}
                 {perSegment ? <span className="muted"> · {perSegment.filter((s) => s.mode === mode).map((s) => fmtKm(s.distanceKm) + " km").join(", ")}</span> : null}
-                <span className="muted"> · {fmtFactor(f.kgCo2ePerPkm)} kg CO₂e per personkilometer</span>
+                <span className="muted"> · {fmtFactor(f.kgCo2ePerPkm)} kg CO₂e for én person som reiser 1 km</span>
               </div>
               <FactorInfo f={f} />
             </div>
           ))}
           <div className="segcard">
-            <div className="n">Referansebil (bensin) <span className="muted">· {fmtFactor(b.kgCo2ePerVkm)} kg CO₂e per kjøretøy-km, {b.vehicleOccupancy} person</span></div>
+            <div className="n">Referansebil (bensin) <span className="muted">· {fmtFactor(b.kgCo2ePerVkm)} kg CO₂e per kilometer bilen kjører, {b.vehicleOccupancy} person</span></div>
             <FactorInfo f={{ ...b, value: b.kgCo2ePerVkm }} />
           </div>
         </div>

@@ -1,7 +1,5 @@
 import { FACTORS, FACTOR_VERSION, MODE_LABELS, REFERENCE_CAR } from "@calc/factors";
-import { fmtFactor } from "./format";
-
-const UNIT = { kg_co2e_per_pkm: "kg CO₂e per personkilometer", kg_co2e_per_vkm: "kg CO₂e per kjøretøy-km" } as const;
+import { UNIT_LABELS, fmtFactor, plainFactorText } from "./format";
 
 export function Method() {
   return (
@@ -14,8 +12,8 @@ export function Method() {
         <h2>Regler</h2>
         <ul className="rules">
           <li><strong>Utslipp</strong> = distanse × faktor per strekning. Tur-retur dobler distansen. Ingen avrunding i beregningen; tall rundes bare ved visning.</li>
-          <li><strong>Referanse</strong> = total distanse × referansebilen: bensinbil, {fmtFactor(REFERENCE_CAR.kgCo2ePerKm!)} kg CO₂e per kjøretøy-km, 1 person i bilen. Besparelse = referanse − utslipp og kan være negativ.</li>
-          <li><strong>Bil = 1 person.</strong> Bilfaktorene er per kjøretøy-km med føreren alene. Antall personer i bilen kan ikke velges i denne versjonen.</li>
+          <li><strong>Referanse</strong> = hele distansen × referansebilen: bensinbil med 1 person, {fmtFactor(REFERENCE_CAR.kgCo2ePerKm!)} kg CO₂e for hver kilometer bilen kjører. Besparelse = referanse − utslipp og kan være negativ.</li>
+          <li><strong>Bil = 1 person.</strong> Tallet for bil gjelder når bare føreren sitter i bilen, per kilometer bilen kjører. Antall personer i bilen kan ikke velges i denne versjonen.</li>
           <li><strong>Hjemmekontor</strong> = unngått pendling regnet med referansebilen på pendleavstanden (én vei eller tur-retur). Utslippet settes til 0 og fysisk distanse til 0. Tilbys bare når formålet er Jobb.</li>
           <li><strong>Livsløp</strong> er grunnlaget for alle faktorer, unntatt <strong>ferje</strong>, som er «bare direkte utslipp».</li>
           <li><strong>Fly</strong> er regnet med høydeeffekt (multiplikator 1,8 på forbrenningsdelen).</li>
@@ -26,6 +24,7 @@ export function Method() {
       </div>
 
       <h2>Kildetabell</h2>
+      <p className="small muted">Enheten forteller om tallet gjelder én person som reiser 1 km, eller 1 km bilen kjører (med én person i denne versjonen).</p>
       <div style={{ overflowX: "auto" }}>
         <table className="src">
           <thead>
@@ -39,10 +38,10 @@ export function Method() {
               <tr key={f.mode} className={f.status === "mangler_kilde" ? "miss" : undefined}>
                 <td className="mode" data-l="Reisemåte">{MODE_LABELS[f.mode].nb}</td>
                 <td data-l="Verdi">{f.value == null ? "–" : fmtFactor(f.value)}</td>
-                <td data-l="Enhet">{UNIT[f.unit]}</td>
+                <td data-l="Enhet">{UNIT_LABELS[f.unit]}</td>
                 <td data-l="Omfang">{f.lifecycle == null ? "–" : f.lifecycle ? "livsløp" : "bare direkte utslipp"}</td>
-                <td data-l="Belegg">{f.occupancyBasis ?? "–"}</td>
-                <td data-l="Kilde">{f.source ?? "–"}{f.note ? <div className="muted">{f.note}</div> : null}</td>
+                <td data-l="Belegg">{f.occupancyBasis ? plainFactorText(f.occupancyBasis) : "–"}</td>
+                <td data-l="Kilde">{f.source ? plainFactorText(f.source) : "–"}{f.note ? <div className="muted">{plainFactorText(f.note)}</div> : null}</td>
                 <td data-l="Utgave">{f.edition ?? "–"}</td>
                 <td data-l="Dato">{f.sourceDate ?? "–"}</td>
                 <td data-l="CSV-rad">{f.csvId ?? "–"}</td>
@@ -52,10 +51,10 @@ export function Method() {
             <tr>
               <td className="mode" data-l="Reisemåte">Referansebil (bensin)</td>
               <td data-l="Verdi">{fmtFactor(REFERENCE_CAR.kgCo2ePerKm!)}</td>
-              <td data-l="Enhet">{UNIT.kg_co2e_per_vkm}</td>
+              <td data-l="Enhet">{UNIT_LABELS.kg_co2e_per_vkm}</td>
               <td data-l="Omfang">livsløp</td>
-              <td data-l="Belegg">{REFERENCE_CAR.occupancyBasis}</td>
-              <td data-l="Kilde">{REFERENCE_CAR.source}</td>
+              <td data-l="Belegg">{REFERENCE_CAR.occupancyBasis ? plainFactorText(REFERENCE_CAR.occupancyBasis) : "–"}</td>
+              <td data-l="Kilde">{REFERENCE_CAR.source ? plainFactorText(REFERENCE_CAR.source) : "–"}</td>
               <td data-l="Utgave">{REFERENCE_CAR.edition}</td>
               <td data-l="Dato">{REFERENCE_CAR.sourceDate}</td>
               <td data-l="CSV-rad">{REFERENCE_CAR.csvId}</td>

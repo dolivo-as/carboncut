@@ -138,7 +138,7 @@ export function RegisterTrip({ onSave, onCancel }: { onSave: (t: StoredTrip) => 
     step === 4 && !result ? (calcError ?? "Fyll inn distanse før du kan lagre.") :
     "";
 
-  const nextLabel = step === 4 ? "Lagre i denne nettleseren" : "Neste";
+  const nextLabel = step === 4 ? "Lagre turen" : "Neste";
   const nextDisabled = step === 4 ? !result : false;
 
   return (

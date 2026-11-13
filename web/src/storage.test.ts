@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { groupTrips, markPurpose, purposeOf, sumSavingsKg, type StoredTrip } from "./storage";
+import { groupTrips, markPurpose, purposeOf, restoreTrip, sumSavingsKg, type StoredTrip } from "./storage";
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -44,5 +44,19 @@ describe("formål på lagrede turer", () => {
 
   it("summerer besparelse per gruppe", () => {
     expect(sumSavingsKg([trip("1", "work", 2.5), trip("2", "work", -0.5)])).toBe(2);
+  });
+});
+
+describe("angre sletting", () => {
+  it("setter turen tilbake på samme plass", () => {
+    const a = trip("a", "work");
+    const b = trip("b", "work");
+    const c = trip("c", "private");
+    const after = [a, c];
+    expect(restoreTrip(after, b, 1).map((t) => t.id)).toEqual(["a", "b", "c"]);
+  });
+  it("dupliserer ikke en tur som allerede ligger i lista", () => {
+    const a = trip("a", "work");
+    expect(restoreTrip([a], a, 0)).toEqual([a]);
   });
 });

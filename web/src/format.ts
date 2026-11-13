@@ -12,9 +12,27 @@ export function parseNum(s: string): number {
   const t = s.trim().replace(",", ".");
   return t === "" ? NaN : Number(t);
 }
-/** ISO-dato (YYYY-MM-DD) som 13.11.2026. */
+/** ISO-dato (YYYY-MM-DD) som «13. nov. 2026» med Intl nb-NO. */
 export function fmtDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   if (!m) return iso;
-  return `${m[3]}.${m[2]}.${m[1]}`;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return d.toLocaleDateString("nb-NO", { day: "numeric", month: "short", year: "numeric" });
 }
+
+/** Enheter med kort forklaring, til metode og «Slik er tallet regnet ut». */
+export const UNIT_LABELS = {
+  kg_co2e_per_pkm: "kg CO₂e for én person som reiser 1 km",
+  kg_co2e_per_vkm: "kg CO₂e per kilometer bilen kjører",
+} as const;
+
+/** Gjør fagspråk i kildetekst om til vanlig norsk i visningen. Kildedata endres ikke. */
+export function plainFactorText(s: string): string {
+  return s
+    .replace(/kjøretøy-km/gi, "kilometer bilen kjører")
+    .replace(/CO[2₂]e\/pkm/gi, "CO₂e for én person som reiser 1 km")
+    .replace(/\(Ruters pkm\)/gi, "(Ruters tall per person og kilometer)")
+    .replace(/per pkm/gi, "per person og kilometer")
+    .replace(/\bpkm\b/gi, "person og kilometer");
+}
+

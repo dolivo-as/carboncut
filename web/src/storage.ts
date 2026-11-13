@@ -56,3 +56,13 @@ export function markPurpose(trips: StoredTrip[], id: string, purpose: Purpose): 
 export function sumSavingsKg(trips: StoredTrip[]): number {
   return trips.reduce((s, t) => s + t.result.savingsKg, 0);
 }
+
+/** Sett en slettet tur tilbake på samme plass, eller bakerst hvis indeksen er utenfor. */
+export function restoreTrip(trips: StoredTrip[], trip: StoredTrip, index: number): StoredTrip[] {
+  if (trips.some((t) => t.id === trip.id)) return trips;
+  const next = [...trips];
+  const i = Math.min(Math.max(index, 0), next.length);
+  next.splice(i, 0, trip);
+  return next;
+}
+
