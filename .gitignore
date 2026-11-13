@@ -6,3 +6,6 @@ dist/
 .env.*
 # Rå kildefiler (PDF/XLSX, ca. 54 MB) og arbeidsskript – ikke del av repoet. Se README.
 kilder/
+
+# UX-skjermbilder (ca. 30 MB) holdes lokalt
+ux/*.png
