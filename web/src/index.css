@@ -189,7 +189,7 @@ p { margin: 0 0 10px; }
   text-align: center;
 }
 .btn.secondary { background: transparent; color: var(--fg); border-color: var(--border); }
-.btn.small { min-height: 48px; font-size: 16px; width: auto; padding: 0 14px; }
+.btn.small { min-height: 52px; font-size: 16px; width: auto; padding: 0 14px; }
 .btn.danger { background: transparent; color: var(--bad-fg); border-color: var(--bad); }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
 
@@ -685,4 +685,44 @@ a { color: var(--fg); font-weight: 700; }
 .dlist .cap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; font-weight: 700; font-size: var(--fs-sm); margin: 0 0 4px; }
 @media print {
   .banner, .appbar, .tabbar, .toast, .row-actions, .card:not(.reveal), h1, .page > section > p { display: none !important; }
+}
+
+/* ---- Designforslag v3: hurtigvalg, bekreftelse, dashbord ---- */
+.qk { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 12px; }
+.qk button {
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  min-height: 44px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  background: var(--card);
+  color: var(--fg);
+  cursor: pointer;
+}
+.qk button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-soft-fg);
+}
+.confirm {
+  border: 2px solid var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-soft-fg);
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 700;
+  margin: 0 0 14px;
+}
+.big.accent { color: var(--primary); }
+.big.accent .unit { color: var(--primary); font-size: 20px; font-weight: 700; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; min-width: 0; }
+.tile.compact { min-height: 64px; justify-content: center; text-align: center; }
+.tile.compact .name { font-size: 16px; }
+.tile.compact[aria-checked="true"]::after, .tile.compact[aria-pressed="true"]::after { content: none; }
+.actionbar .in.one { grid-template-columns: 1fr; }
+@media (min-width: 701px) {
+  .admin-page { max-width: 860px; }
+  .dash-hero .big { font-size: 72px; }
 }

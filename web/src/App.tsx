@@ -3,6 +3,7 @@ import { Banner } from "./Banner";
 import { Method } from "./Method";
 import { IconBook, IconLeaf, IconList, IconMoon, IconSun } from "./components/Icons";
 import { Overview } from "./flow/Overview";
+import { LinkTrip } from "./flow/LinkTrip";
 import { RegisterTrip } from "./flow/RegisterTrip";
 import { api } from "./api";
 import { Admin } from "./pages/Admin";
@@ -25,7 +26,7 @@ interface Toast {
   restoreId?: string;
 }
 
-type LinkState = { status: "laster" } | { status: "ok"; navn: string } | { status: "ugyldig" } | { status: "feil"; feil: string };
+type LinkState = { status: "laster" } | { status: "ok"; id: string; navn: string; offentlig: boolean } | { status: "ugyldig" } | { status: "feil"; feil: string };
 
 export default function App() {
   const [route, setRoute] = useState<Route>(() => parseRoute(typeof window !== "undefined" ? window.location.hash : ""));
@@ -50,9 +51,9 @@ export default function App() {
     if (!linkToken) { setLink(null); return; }
     let active = true;
     setLink({ status: "laster" });
-    api<{ prosjekt: { navn: string } }>("/api/lenke", { method: "POST", body: JSON.stringify({ token: linkToken }) }).then((r) => {
+    api<{ prosjekt: { id: string; navn: string; offentlig: boolean } }>("/api/lenke", { method: "POST", body: JSON.stringify({ token: linkToken }) }).then((r) => {
       if (!active) return;
-      if (r.ok) { setLink({ status: "ok", navn: r.data.prosjekt.navn }); setView("register"); }
+      if (r.ok) { setLink({ status: "ok", id: r.data.prosjekt.id, navn: r.data.prosjekt.navn, offentlig: r.data.prosjekt.offentlig }); setView("register"); }
       else setLink(r.status === 404 ? { status: "ugyldig" } : { status: "feil", feil: r.feil });
     });
     return () => { active = false; };
@@ -140,7 +141,7 @@ export default function App() {
   }
 
   const page = route.name === "admin" || route.name === "dashbord" ? route.name : null;
-  const showTabs = page !== null || view !== "register";
+  const showTabs = page === null && route.name !== "lenke" && view !== "register";
   function goTab(v: View) {
     if (page) window.location.hash = "";
     setView(v);
@@ -163,18 +164,19 @@ export default function App() {
           {theme === "dark" ? <IconSun /> : <IconMoon />}
         </button>
       </header>
-      <main className="page" style={showTabs ? undefined : { paddingBottom: 148 }}>
+      <main className="page" style={showTabs || route.name === "admin" || route.name === "dashbord" ? undefined : { paddingBottom: 148 }}>
         {route.name === "admin" && <Admin />}
         {route.name === "dashbord" && <Dashbord id={route.id} />}
-        {!page && link && view !== "register" && (
-          <div className={link.status === "ok" ? "privacy" : "notice bad"} role={link.status === "ugyldig" || link.status === "feil" ? "alert" : undefined}>
-            {link.status === "laster" && <p style={{ margin: 0 }}>Sjekker lenken …</p>}
-            {link.status === "ok" && <p style={{ margin: 0 }}>Du registrerer for <strong>{link.navn}</strong>. Jobbreiser sendes til prosjektet uten navn. Private reiser blir bare her.</p>}
-            {link.status === "ugyldig" && <p style={{ margin: 0 }}>Lenken er ikke gyldig. Be om en ny lenke. Du kan fortsatt lagre turer i denne nettleseren.</p>}
-            {link.status === "feil" && <p style={{ margin: 0 }}>{link.feil}</p>}
+        {route.name === "lenke" && link?.status === "laster" && <p className="muted">Sjekker lenken …</p>}
+        {route.name === "lenke" && (link?.status === "ugyldig" || link?.status === "feil") && (
+          <div className="notice bad" role="alert">
+            <p style={{ margin: 0 }}>{link.status === "ugyldig" ? "Lenken er ikke gyldig. Be om en ny lenke." : link.feil}</p>
           </div>
         )}
-        {!page && view === "overview" && (
+        {route.name === "lenke" && link?.status === "ok" && (
+          <LinkTrip token={route.token} prosjekt={{ id: link.id, navn: link.navn, offentlig: link.offentlig }} />
+        )}
+        {!page && route.name !== "lenke" && view === "overview" && (
           <Overview
             trips={trips}
             onStart={() => setView("register")}
@@ -184,8 +186,8 @@ export default function App() {
             note={linkProject ? `Turer i denne nettleseren. Jobbturer du lagrer nå sendes også til ${linkProject}.` : undefined}
           />
         )}
-        {!page && view === "register" && <RegisterTrip onSave={saved} onCancel={() => setView("overview")} linkProject={linkProject} />}
-        {!page && view === "method" && <Method />}
+        {!page && route.name !== "lenke" && view === "register" && <RegisterTrip onSave={saved} onCancel={() => setView("overview")} linkProject={linkProject} />}
+        {!page && route.name !== "lenke" && view === "method" && <Method />}
       </main>
       {toast && (
         <div className="toast" ref={toastRef} tabIndex={-1} role="status" aria-live="polite" aria-atomic="true">

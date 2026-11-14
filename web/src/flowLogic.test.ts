@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   canLeaveMode, canLeavePurpose, documentedMode, homeOfficeAllowed,
-  PURPOSE_LABELS, validateDistance, validateSegments,
+  PURPOSE_LABELS, VANLIGE_MODUSER, gyldigUtloperMaaneder, ovrigeModuser,
+  validateDistance, validateSegments, KM_HURTIGVALG,
 } from "./flowLogic";
 
 describe("hovedflyt", () => {
@@ -40,5 +41,32 @@ describe("hovedflyt", () => {
     expect(PURPOSE_LABELS.work).toBe("Jobb");
     expect(PURPOSE_LABELS.private).toBe("Privat");
     expect(PURPOSE_LABELS.unspecified).toBe("Ikke oppgitt");
+  });
+});
+
+describe("lenkeflyt og hurtigvalg (v3)", () => {
+  it("har seks vanlige reisemåter, alle dokumentert", () => {
+    expect(VANLIGE_MODUSER).toEqual(["walking", "bicycle", "city_bus", "electric_train", "electric_car", "gasoline_car"]);
+    for (const m of VANLIGE_MODUSER) expect(documentedMode(m)).toBe(true);
+  });
+
+  it("holder vanlige og øvrige adskilt", () => {
+    const resten = ovrigeModuser();
+    expect(resten).not.toContain("walking");
+    expect(resten).toContain("regional_bus");
+    expect(new Set([...VANLIGE_MODUSER, ...resten]).size).toBe(VANLIGE_MODUSER.length + resten.length);
+  });
+
+  it("hurtigvalg for km er 2, 5, 10, 20 og 50", () => {
+    expect([...KM_HURTIGVALG]).toEqual([2, 5, 10, 20, 50]);
+  });
+
+  it("godtar bare utløp på 3, 6 eller 12 måneder", () => {
+    expect(gyldigUtloperMaaneder(3)).toBe(true);
+    expect(gyldigUtloperMaaneder(6)).toBe(true);
+    expect(gyldigUtloperMaaneder(12)).toBe(true);
+    expect(gyldigUtloperMaaneder(1)).toBe(false);
+    expect(gyldigUtloperMaaneder(24)).toBe(false);
+    expect(gyldigUtloperMaaneder("12")).toBe(false);
   });
 });

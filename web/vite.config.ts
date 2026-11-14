@@ -8,5 +8,5 @@ export default defineConfig({
   base: "/",
   plugins: [react(), tailwindcss()],
   resolve: { alias: { "@calc": fileURLToPath(new URL("../calc/src", import.meta.url)) } },
-  server: { fs: { allow: [".."] } },
+  server: { host: "127.0.0.1", port: 5180, strictPort: true, fs: { allow: [".."] } },
 });

@@ -3,10 +3,12 @@ import { api, serverAvailable } from "../api";
 import { Button } from "../components/Button";
 import { Field } from "../components/Field";
 import { Qr } from "../components/Qr";
+import { SegmentedChoice } from "../components/SegmentedChoice";
+import { UTLØP_FORVALGT, type UtloperMaaneder } from "../flowLogic";
 import { fmtDate } from "../format";
 import { dashbordUrl, lenkeUrl } from "../route";
 
-interface Prosjekt { id: string; navn: string; status: string; registrerte_reiser: number }
+interface Prosjekt { id: string; navn: string; status: string; registrerte_reiser: number; offentlig?: boolean }
 interface Lenke { id: string; prefiks: string; opprettet: string; utloper: string; trukket_tilbake: string | null }
 interface NyLenke { token: string; lenke: Lenke }
 
@@ -25,13 +27,16 @@ export function Admin() {
   const [prosjekter, setProsjekter] = useState<Prosjekt[] | null>(null);
   const [feil, setFeil] = useState<string | null>(null);
   const [navn, setNavn] = useState("");
+  const [utloper, setUtloper] = useState<UtloperMaaneder>(UTLØP_FORVALGT);
+  const [offentlig, setOffentlig] = useState(true);
   const [valgt, setValgt] = useState<string | null>(null);
   const [lenker, setLenker] = useState<Lenke[]>([]);
   const [ny, setNy] = useState<NyLenke | null>(null);
+  const [visQr, setVisQr] = useState(true);
   const [bekreft, setBekreft] = useState<string | null>(null);
   const [kopiert, setKopiert] = useState(false);
   const h1 = useRef<HTMLHeadingElement>(null);
-  const nyRef = useRef<HTMLHeadingElement>(null);
+  const nyRef = useRef<HTMLDivElement>(null);
   useEffect(() => { h1.current?.focus(); }, []);
   useEffect(() => { if (ny) nyRef.current?.focus(); }, [ny]);
 
@@ -53,13 +58,25 @@ export function Admin() {
   useEffect(() => { if (valgt) void hentLenker(valgt); }, [valgt, hentLenker]);
 
   async function opprettProsjekt() {
-    const r = await api<{ prosjekt: Prosjekt }>("/api/admin/prosjekter", { method: "POST", adminKey: key, body: JSON.stringify({ navn }) });
+    const r = await api<{ prosjekt: Prosjekt; token: string; lenke: Lenke }>("/api/admin/prosjekter", {
+      method: "POST",
+      adminKey: key,
+      body: JSON.stringify({ navn, utloper_maaneder: utloper, offentlig }),
+    });
     if (!r.ok) { setFeil(r.feil); return; }
-    setNavn(""); setFeil(null); await hent(); setValgt(r.data.prosjekt.id);
+    setNavn(""); setUtloper(UTLØP_FORVALGT); setOffentlig(true); setFeil(null);
+    setKopiert(false); setVisQr(true);
+    setNy({ token: r.data.token, lenke: r.data.lenke });
+    await hent();
+    setValgt(r.data.prosjekt.id);
   }
-  async function lagLenke(sti: string) {
-    setNy(null); setKopiert(false);
-    const r = await api<NyLenke>(sti, { method: "POST", adminKey: key });
+  async function lagLenke(sti: string, maaneder?: UtloperMaaneder) {
+    setNy(null); setKopiert(false); setVisQr(true);
+    const r = await api<NyLenke>(sti, {
+      method: "POST",
+      adminKey: key,
+      body: maaneder ? JSON.stringify({ utloper_maaneder: maaneder }) : undefined,
+    });
     if (!r.ok) { setFeil(r.feil); return; }
     setNy(r.data); setFeil(null);
     if (valgt) await hentLenker(valgt);
@@ -93,27 +110,69 @@ export function Admin() {
   const url = ny ? lenkeUrl(origin(), ny.token) : "";
 
   return (
-    <section className="narrow">
+    <section className="admin-page">
       <h1 ref={h1} tabIndex={-1}>Admin</h1>
-      <p className="small muted">Midlertidig dev-innlogging. <button type="button" className="linkbtn" onClick={() => { sessionStorage.removeItem(KEY); setKey(""); setProsjekter(null); }}>Logg ut</button></p>
+      <p className="small muted">Midlertidig dev-innlogging. <button type="button" className="linkbtn" onClick={() => { sessionStorage.removeItem(KEY); setKey(""); setProsjekter(null); setNy(null); }}>Logg ut</button></p>
       <div aria-live="polite">{feil && <p className="notice bad" role="alert">{feil}</p>}</div>
 
       {ny && (
         <section className="card reveal" aria-labelledby="ny-tittel">
-          <h2 id="ny-tittel" ref={nyRef} tabIndex={-1}>Ny delelenke</h2>
-          <p className="notice"><strong>Lenken vises bare nå.</strong> Kopier den eller skriv ut QR-koden før du lukker. Serveren lagrer den ikke og kan ikke vise den igjen.</p>
-          <Qr text={url} label="QR-kode for delelenken" />
-          <p className="linkbox">{url}</p>
+          <div className="confirm" ref={nyRef} tabIndex={-1} role="status" id="ny-tittel">
+            Prosjektet er opprettet. Lenken vises bare nå – kopier den eller vis QR-koden.
+          </div>
+          <p className="notice"><strong>Lenken vises bare nå.</strong> Serveren lagrer den ikke og kan ikke vise den igjen.</p>
+          <label className="lbl" htmlFor="delelenke">Delelenke for registrering</label>
+          <p id="delelenke" className="linkbox">{url}</p>
           <div className="row-actions">
-            <Button variant="secondary" className="small" onClick={async () => { try { await navigator.clipboard.writeText(url); setKopiert(true); } catch { setKopiert(false); } }}>
+            <Button onClick={async () => { try { await navigator.clipboard.writeText(url); setKopiert(true); } catch { setKopiert(false); } }}>
               {kopiert ? "Kopiert" : "Kopier lenke"}
             </Button>
-            <Button variant="secondary" className="small" onClick={() => window.print()}>Skriv ut</Button>
-            <Button className="small" onClick={() => setNy(null)}>Ferdig</Button>
+            <Button variant="secondary" onClick={() => setVisQr((v) => !v)}>
+              {visQr ? "Skjul QR-kode" : "Vis QR-kode"}
+            </Button>
           </div>
-          <p className="small muted" style={{ marginTop: 10 }}>Gyldig til {fmtDate(ny.lenke.utloper)}. Lenken gir bare rett til å registrere jobbreiser på prosjektet.</p>
+          {visQr && <Qr text={url} label="QR-kode for delelenken" />}
+          <p className="small muted" style={{ marginTop: 10 }}>
+            Gyldig til {fmtDate(ny.lenke.utloper)}. Lenken gir bare rett til å registrere jobbreiser på prosjektet.
+          </p>
         </section>
       )}
+
+      {!ny && <section className="card" aria-labelledby="nytt-tittel">
+        <h2 id="nytt-tittel">Nytt prosjekt</h2>
+        <p className="muted small">Bare prosjektnavn. Ingen navn på ansatte, og ingen fritekst om personer.</p>
+        <form onSubmit={(e) => { e.preventDefault(); void opprettProsjekt(); }}>
+          <Field id="pnavn" label="Prosjektnavn" type="text" compact maxLength={80} value={navn} onChange={(e) => setNavn(e.target.value)} placeholder="Prosjektnavn" />
+          <p className="lbl" id="utloper-label">Lenken utløper</p>
+          <SegmentedChoice
+            legend="Lenken utløper"
+            name="utloper"
+            layout="tiles3"
+            value={String(utloper)}
+            onChange={(v) => setUtloper(Number(v) as UtloperMaaneder)}
+            options={[
+              { value: "3", label: "3 mnd" },
+              { value: "6", label: "6 mnd" },
+              { value: "12", label: "12 mnd" },
+            ]}
+          />
+          <p className="lbl" id="dash-label" style={{ marginTop: 12 }}>Dashbord</p>
+          <SegmentedChoice
+            legend="Dashbord"
+            name="offentlig"
+            layout="tiles"
+            value={offentlig ? "ja" : "nei"}
+            onChange={(v) => setOffentlig(v === "ja")}
+            options={[
+              { value: "ja", label: "Offentlig (bare summer)" },
+              { value: "nei", label: "Skjult" },
+            ]}
+          />
+          <div className="row-actions" style={{ marginTop: 16 }}>
+            <Button type="submit" disabled={navn.trim().length < 2}>Opprett og lag lenke</Button>
+          </div>
+        </form>
+      </section>}
 
       <section className="card" aria-labelledby="p-tittel">
         <h2 id="p-tittel">Prosjekter</h2>
@@ -123,23 +182,25 @@ export function Admin() {
               <li key={p.id}>
                 <button type="button" className="prow" aria-pressed={valgt === p.id} onClick={() => { setValgt(p.id); setNy(null); }}>
                   <span className="t">{p.navn}</span>
-                  <span className="small muted">{p.registrerte_reiser.toLocaleString("nb-NO")} registrerte reiser{p.status !== "aktiv" ? " · arkivert" : ""}</span>
+                  <span className="small muted">
+                    {p.registrerte_reiser.toLocaleString("nb-NO")} registrerte reiser
+                    {p.offentlig === false ? " · skjult dashbord" : ""}
+                    {p.status !== "aktiv" ? " · arkivert" : ""}
+                  </span>
                 </button>
               </li>
             ))}
           </ul>
         )}
-        <form onSubmit={(e) => { e.preventDefault(); void opprettProsjekt(); }} style={{ marginTop: 14 }}>
-          <Field id="pnavn" label="Nytt prosjekt" type="text" compact maxLength={80} value={navn} onChange={(e) => setNavn(e.target.value)} placeholder="Prosjektnavn" />
-          <Button type="submit" variant="secondary" disabled={navn.trim().length < 2}>Opprett prosjekt</Button>
-        </form>
       </section>
 
       {prosjekt && (
         <section className="card" aria-labelledby="l-tittel">
           <h2 id="l-tittel">Delelenker for {prosjekt.navn}</h2>
-          <p className="small"><a href={dashbordUrl(origin(), prosjekt.id)}>Åpent dashbord for prosjektet</a></p>
-          <Button onClick={() => void lagLenke(`/api/admin/prosjekter/${prosjekt.id}/lenker`)} disabled={prosjekt.status !== "aktiv"}>Lag ny delelenke</Button>
+          {prosjekt.offentlig !== false
+            ? <p className="small"><a href={dashbordUrl(origin(), prosjekt.id)}>Åpent dashbord for prosjektet</a></p>
+            : <p className="small muted">Dashbordet er skjult. Det gir samme svar som et ukjent prosjekt.</p>}
+          <Button variant="secondary" onClick={() => void lagLenke(`/api/admin/prosjekter/${prosjekt.id}/lenker`, utloper)} disabled={prosjekt.status !== "aktiv"}>Lag ny delelenke</Button>
           {lenker.length === 0 ? <p className="muted" style={{ marginTop: 12 }}>Ingen lenker ennå.</p> : (
             <ul className="plist" style={{ marginTop: 12 }}>
               {lenker.map((l) => {
@@ -154,13 +215,13 @@ export function Admin() {
                       <div className="row-actions">
                         {bekreft === l.id ? (
                           <>
-                            <Button variant="danger" className="small" onClick={() => void trekk(l.id)}>Bekreft: trekk tilbake</Button>
-                            <Button variant="secondary" className="small" onClick={() => setBekreft(null)}>Avbryt</Button>
+                            <Button variant="danger" onClick={() => void trekk(l.id)}>Bekreft: trekk tilbake</Button>
+                            <Button variant="secondary" onClick={() => setBekreft(null)}>Avbryt</Button>
                           </>
                         ) : (
                           <>
-                            <Button variant="secondary" className="small" onClick={() => setBekreft(l.id)}>Trekk tilbake</Button>
-                            <Button variant="secondary" className="small" onClick={() => void lagLenke(`/api/admin/lenker/${l.id}/forny`)}>Forny</Button>
+                            <Button variant="secondary" onClick={() => setBekreft(l.id)}>Trekk tilbake…</Button>
+                            <Button variant="secondary" onClick={() => void lagLenke(`/api/admin/lenker/${l.id}/forny`)}>Forny</Button>
                           </>
                         )}
                       </div>

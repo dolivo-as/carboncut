@@ -50,3 +50,25 @@ export function canLeaveMode(kind: Kind, mode: Mode | null, purpose: Purpose | n
   if (kind === "home_office") return homeOfficeAllowed(purpose);
   return mode != null && documentedMode(mode);
 }
+
+export const KM_HURTIGVALG = [2, 5, 10, 20, 50] as const;
+
+export const UTLØP_MAANEDER = [3, 6, 12] as const;
+export type UtloperMaaneder = (typeof UTLØP_MAANEDER)[number];
+export const UTLØP_FORVALGT: UtloperMaaneder = 12;
+
+export function gyldigUtloperMaaneder(v: unknown): v is UtloperMaaneder {
+  return v === 3 || v === 6 || v === 12;
+}
+
+/** De seks vanligste reisemåtene i lenkeflyten (designforslag v3, B1). */
+export const VANLIGE_MODUSER: Mode[] = [
+  "walking", "bicycle", "city_bus", "electric_train", "electric_car", "gasoline_car",
+];
+
+export function ovrigeModuser(): Mode[] {
+  const vanlige = new Set<string>(VANLIGE_MODUSER);
+  return tripModes().filter((m) => !vanlige.has(m));
+}
+
+export const LINK_STEP_LABELS = ["Reisemåte", "Avstand", "Takk"] as const;

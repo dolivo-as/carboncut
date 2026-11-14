@@ -15,3 +15,11 @@ describe("admin og dashbord, visning", () => {
     expect(fmtMaaned("2026-11")).toBe("november 2026");
   });
 });
+
+describe("dashbordtekst", () => {
+  it("bruker aldri ordet person i reiseteksten", () => {
+    expect(reiserTekst(0).toLowerCase()).not.toMatch(/person/);
+    expect(reiserTekst(1).toLowerCase()).not.toMatch(/person/);
+    expect(reiserTekst(10).toLowerCase()).not.toMatch(/person/);
+  });
+});

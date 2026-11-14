@@ -8,7 +8,7 @@ export interface ChoiceOption<T extends string> {
   disabled?: boolean;
 }
 
-type Layout = "segmented" | "cards" | "tiles" | "purpose";
+type Layout = "segmented" | "cards" | "tiles" | "tiles3" | "purpose";
 
 export function SegmentedChoice<T extends string>({
   legend,
@@ -40,8 +40,8 @@ export function SegmentedChoice<T extends string>({
     refs.current[next]?.focus();
   }
 
-  const cls = layout === "purpose" ? "pgrid" : layout === "tiles" ? "grid2" : layout === "cards" ? "choice-grid" : "seg";
-  const btnCls = layout === "purpose" ? "pbtn" : layout === "tiles" ? "tile" : undefined;
+  const cls = layout === "purpose" ? "pgrid" : layout === "tiles3" ? "grid3" : layout === "tiles" ? "grid2" : layout === "cards" ? "choice-grid" : "seg";
+  const btnCls = layout === "purpose" ? "pbtn" : layout === "tiles" || layout === "tiles3" ? "tile compact" : undefined;
 
   return (
     <div role="radiogroup" aria-label={legend} className={cls} onKeyDown={onKey}>
@@ -60,7 +60,7 @@ export function SegmentedChoice<T extends string>({
           onClick={() => { if (!o.disabled) onChange(o.value); }}
         >
           {o.icon}
-          {layout === "purpose" || layout === "tiles" ? (
+          {layout === "purpose" || layout === "tiles" || layout === "tiles3" ? (
             <>
               <span className="name">{o.label}</span>
               {o.description ? <span className="sub">{o.description}</span> : null}

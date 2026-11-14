@@ -3,6 +3,7 @@ import { calculateHomeOffice, calculateTrip, CalcError, type TripResult } from "
 import { FACTORS, MODE_LABELS, REFERENCE_CAR } from "@calc/factors";
 import { Button } from "../components/Button";
 import { Field } from "../components/Field";
+import { KmChips } from "../components/KmChips";
 import { IconBriefcase, IconLock, IconUser } from "../components/Icons";
 import { ResultCard } from "../components/ResultCard";
 import { SegmentedChoice } from "../components/SegmentedChoice";
@@ -265,16 +266,17 @@ export function RegisterTrip({ onSave, onCancel, linkProject }: { onSave: SaveHa
                 error={attempted ? validateDistance(commute) ?? undefined : undefined}
                 onChange={(e) => { setCommute(e.target.value); setAttempted(false); }}
               />
+              <KmChips value={commute} onPick={(n) => { setCommute(String(n).replace(".", ",")); setAttempted(false); }} />
               <p className="lbl" id="avoided-label">Unngått reise</p>
               <SegmentedChoice
                 legend="Unngått reise"
                 name="avoided"
-                layout="cards"
+                layout="tiles"
                 value={avoided}
                 onChange={setAvoided}
                 options={[
-                  { value: "one_way", label: "Én vei" },
-                  { value: "return", label: "Tur-retur" },
+                  { value: "return", label: "Ja, tur-retur" },
+                  { value: "one_way", label: "Nei, én vei" },
                 ]}
               />
               <p className="small muted">Hjemmekontor regnes som unngått pendling med referansebilen (bensinbil, 1 person). Ingen fysisk distanse.</p>
@@ -298,7 +300,7 @@ export function RegisterTrip({ onSave, onCancel, linkProject }: { onSave: SaveHa
                   </div>
                   <Field
                     id={`km-${s.key}`}
-                    label="Distanse"
+                    label="Kilometer én vei"
                     suffix="km"
                     inputMode="decimal"
                     value={s.km}
@@ -306,20 +308,22 @@ export function RegisterTrip({ onSave, onCancel, linkProject }: { onSave: SaveHa
                     error={attempted ? validateDistance(s.km) ?? undefined : undefined}
                     onChange={(e) => { update(s.key, { km: e.target.value }); setAttempted(false); }}
                   />
+                  <KmChips value={s.km} onPick={(n) => { update(s.key, { km: String(n).replace(".", ",") }); setAttempted(false); }} />
                 </div>
               ))}
               <Button variant="secondary" onClick={() => setSegs((l) => [...l, { key: seq++, mode: mode ?? "walking", km: "" }])}>+ Legg til strekning</Button>
-              <button
-                type="button"
-                className="switch"
-                role="switch"
-                aria-checked={returnTrip}
-                onClick={() => setReturnTrip((v) => !v)}
-                style={{ marginTop: 12 }}
-              >
-                <span className="track" />
-                Tur-retur (alle strekninger dobles)
-              </button>
+              <p className="lbl" id="retur-label" style={{ marginTop: 12 }}>Tur-retur?</p>
+              <SegmentedChoice
+                legend="Tur-retur?"
+                name="returnTrip"
+                layout="tiles"
+                value={returnTrip ? "ja" : "nei"}
+                onChange={(v) => setReturnTrip(v === "ja")}
+                options={[
+                  { value: "ja", label: "Ja, tur-retur" },
+                  { value: "nei", label: "Nei, én vei" },
+                ]}
+              />
               {hasFerry && <p className="notice" style={{ marginTop: 12 }}>Ferje: bare direkte utslipp (ikke livsløp). Tallet gjelder Ruters kollektivbåter i Oslofjorden.</p>}
             </>
           )}
