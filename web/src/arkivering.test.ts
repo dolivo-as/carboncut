@@ -102,11 +102,57 @@ describe("«Lag ny lenke» etter gjenoppretting", () => {
   });
 });
 
-describe("live-regioner i admin", () => {
-  it("statusmeldingene for reiser og arkivering ligger ikke i nestede live-regioner", async () => {
+/**
+ * Finner live-regioner (aria-live, role=status|alert|log) som ligger inni en annen live-region i JSX-kilden.
+ * Enkel tagg-parser: følger bare vanlige HTML-tagger, og hopper over {...}-uttrykk i attributter.
+ */
+const HTML = new Set(["div", "p", "section", "span", "output", "ul", "ol", "li", "form", "main", "aside", "details", "summary", "h1", "h2", "h3", "label", "fieldset", "article"]);
+const LIVE = /aria-live=|role="(status|alert|log)"/;
+export function nesteteLiveRegioner(kilde: string): string[] {
+  const tekst = kilde.replace(/=>/g, "==").replace(/>=/g, "==");
+  const re = /<(\/?)([a-z][\w]*)((?:[^<>{}]|\{(?:[^{}]|\{[^{}]*\})*\})*?)(\/?)>/g;
+  const stakk: { navn: string; live: boolean }[] = [];
+  const funn: string[] = [];
+  for (const m of tekst.matchAll(re)) {
+    const [hel, slutt, navn, attr, selv] = m;
+    if (!HTML.has(navn)) continue;
+    if (slutt) {
+      const i = stakk.map((t) => t.navn).lastIndexOf(navn);
+      if (i >= 0) stakk.splice(i);
+      continue;
+    }
+    const live = LIVE.test(attr);
+    if (live && stakk.some((t) => t.live)) funn.push(hel);
+    if (!selv) stakk.push({ navn, live });
+  }
+  return funn;
+}
+
+describe("live-regioner: ingen nestede", () => {
+  it("parseren finner de gamle nestede tilfellene", () => {
+    expect(nesteteLiveRegioner('<div aria-live="polite">{status && <p className="notice" role="status">{status}</p>}</div>')).toHaveLength(1);
+    expect(nesteteLiveRegioner('<div aria-live="polite">{feil && <p className="notice bad" role="alert">{feil}</p>}</div>')).toHaveLength(1);
+    expect(nesteteLiveRegioner('<div role="alert">{feil && <p className="notice bad">{feil}</p>}</div>')).toHaveLength(0);
+  });
+  it("ingen fil i web/src har en live-region inni en annen", async () => {
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const rot = new URL("./", import.meta.url);
+    const filer = (readdirSync(rot, { recursive: true }) as string[]).filter((f) => f.endsWith(".tsx"));
+    expect(filer.length).toBeGreaterThan(5);
+    const funn = filer.flatMap((f) => nesteteLiveRegioner(readFileSync(new URL(f, rot), "utf8")).map((h) => `${f}: ${h}`));
+    expect(funn).toEqual([]);
+  });
+  it("admin: status er polite, feil er alert, uten egen rolle på <p>", async () => {
     const { readFileSync } = await import("node:fs");
     const kilde = readFileSync(new URL("./pages/Admin.tsx", import.meta.url), "utf8");
-    expect(kilde).not.toMatch(/aria-live="polite">\{(status|arkivStatus) && <p[^>]*role="status"/);
     expect(kilde).toContain('<div aria-live="polite">{arkivStatus && <p className="notice">{arkivStatus}</p>}</div>');
+    expect(kilde).toContain('<div role="alert">{feil && <p className="notice bad">{feil}</p>}</div>');
+    expect(kilde).not.toMatch(/aria-live="polite">\{feil/);
+  });
+  it("dashbord: feil i egen alert-region som alltid ligger i DOM, utenfor polite-regionen", async () => {
+    const { readFileSync } = await import("node:fs");
+    const kilde = readFileSync(new URL("./pages/Dashbord.tsx", import.meta.url), "utf8");
+    expect(kilde).toContain('<div role="alert">{svar.status === "feil" && <p className="notice bad">{svar.feil}</p>}</div>');
+    expect(kilde.match(/role="alert"/g)).toHaveLength(1);
   });
 });

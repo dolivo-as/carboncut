@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { encode } from "uqr";
 import { describe, expect, it, vi } from "vitest";
-import { Plakat, PLAKAT_TEKST } from "./components/Plakat";
+import { lenkeDeler, Plakat, PLAKAT_TEKST } from "./components/Plakat";
 import { kanSkriveUtPlakat, skrivUtPlakat } from "./pages/Admin";
 
 const NAA = "2026-11-14T12:00:00.000Z";
@@ -43,7 +43,7 @@ describe("A4-plakat: innhold", () => {
     expect(html.match(/<li>/g)).toHaveLength(3);
     for (const s of PLAKAT_TEKST.steg) expect(html).toContain(s);
     expect(html).toContain(PLAKAT_TEKST.personvern);
-    expect(html).toContain(URL_FIKTIV);
+    expect(html.replace(/<wbr\/?>|<\/?span[^>]*>/g, "")).toContain(URL_FIKTIV);
     expect(html).toMatch(/Gyldig til \d+\. \S+ 2027/);
   });
   it("stegene matcher knappene i lenkeflyten", () => {
@@ -55,6 +55,16 @@ describe("A4-plakat: innhold", () => {
     expect(html).toMatch(/<svg class="plakat-qr"[^>]*role="img"[^>]*aria-label="QR-kode for registrering på Testprosjekt Nord"/);
     const storrelse = encode(URL_FIKTIV, { ecc: "M", border: 4 }).size;
     expect(html).toContain(`viewBox="0 0 ${storrelse} ${storrelse}"`);
+  });
+});
+
+describe("A4-plakat: lenketeksten", () => {
+  const css = readFileSync(new URL("./index.css", import.meta.url), "utf8");
+  it("brytes foran tokenet, ikke midt i det", () => {
+    expect(lenkeDeler(URL_FIKTIV)).toEqual(["http://127.0.0.1:5190/#/r/", "TEST-fiktivt-token-0000000000000000000000"]);
+    const html = renderToStaticMarkup(createElement(Plakat, { navn: "X", url: URL_FIKTIV, gyldigTil: "2027-05-14" }));
+    expect(html).toMatch(/#\/r\/<\/span><wbr\/?><span class="plakat-lenkedel">TEST-fiktivt-token/);
+    expect(css).toMatch(/\.plakat-lenkedel\s*\{\s*white-space:\s*nowrap/);
   });
 });
 
@@ -93,5 +103,28 @@ describe("A4-plakat: print-CSS", () => {
   });
   it("tittelen overstyrer den generelle print-regelen som skjuler h1", () => {
     expect(print).toMatch(/\.plakat-tittel\s*\{\s*display:\s*block !important/);
+  });
+});
+
+describe("A4-plakat: skrift og nummerering (UX 14.11)", () => {
+  const css = readFileSync(new URL("./index.css", import.meta.url), "utf8");
+  const print = css.slice(css.indexOf("A4-plakat med QR-kode"));
+  const regel = (sel: string) => new RegExp(`\\n\\s*${sel.replace(/\./g, "\\.")}\\s*\\{([^}]*)\\}`).exec(print)?.[1] ?? "";
+  it("stegene er nummerert (decimal) med plass til tallene", () => {
+    expect(regel(".plakat-steg")).toMatch(/list-style:\s*decimal/);
+    expect(Number(/padding-left:\s*(\d+)mm/.exec(regel(".plakat-steg"))?.[1])).toBeGreaterThanOrEqual(8);
+    expect(print).toMatch(/\.plakat \.plakat-steg\s*\{\s*list-style:\s*decimal outside !important/);
+  });
+  it("stegene er 18–20 pt", () => {
+    const pt = Number(/font-size:\s*(\d+)pt/.exec(regel(".plakat-steg"))?.[1]);
+    expect(pt).toBeGreaterThanOrEqual(18);
+    expect(pt).toBeLessThanOrEqual(20);
+  });
+  it("lenken er minst 11 pt monospace og brytes uten break-all", () => {
+    const r = regel(".plakat-lenke");
+    expect(Number(/font-size:\s*(\d+)pt/.exec(r)?.[1])).toBeGreaterThanOrEqual(11);
+    expect(r).toMatch(/monospace/);
+    expect(r).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(r).not.toMatch(/break-all/);
   });
 });

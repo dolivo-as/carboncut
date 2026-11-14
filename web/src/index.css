@@ -761,9 +761,13 @@ a { color: var(--fg); font-weight: 700; }
   .plakat-tittel { font-size: 34pt; font-weight: 800; line-height: 1.1; }
   .plakat-prosjekt { font-size: 22pt; font-weight: 800; overflow-wrap: anywhere; max-width: 180mm; }
   .plakat-qr { display: block; width: 120mm; height: 120mm; border: 0; }
-  .plakat-steg { font-size: 16pt; line-height: 1.35; text-align: left; max-width: 165mm; padding-left: 9mm; }
+  .plakat-steg { list-style: decimal outside; font-size: 20pt; line-height: 1.3; text-align: left; max-width: 170mm; padding-left: 12mm; }
+  .plakat-steg li { display: list-item; margin: 0 0 1.5mm; }
+  body.skriver-plakat .plakat .plakat-steg { list-style: decimal outside !important; }
   .plakat-personvern { font-size: 13pt; }
-  .plakat-lenke { font-size: 9pt; font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-all; max-width: 180mm; }
-  .plakat-lenke span { font-family: system-ui, Arial, sans-serif; font-size: 11pt; }
+  .plakat-lenke { font-size: 12pt; line-height: 1.35; font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; overflow-wrap: anywhere; max-width: 180mm; }
+  .plakat-lenke .plakat-lenkeintro { font-family: system-ui, Arial, sans-serif; font-size: 12pt; }
+  /* Hver del (adresse, token) holdes samlet; bryter bare ved <wbr> foran tokenet. */
+  .plakat-lenke .plakat-lenkedel { white-space: nowrap; }
   .plakat-gyldig { font-size: 11pt; }
 }

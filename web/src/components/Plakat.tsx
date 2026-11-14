@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { fmtDate } from "../format";
 import { Qr } from "./Qr";
 
@@ -12,6 +13,12 @@ export const PLAKAT_TEKST = {
   personvern: "Bare jobbreiser. Du trenger ikke logge inn, og navnet ditt lagres ikke.",
   lenkeIntro: "Kan du ikke skanne? Skriv inn adressen:",
 } as const;
+
+/** Deler lenken etter «/r/» slik at en lang adresse brytes foran tokenet, ikke midt i det. */
+export function lenkeDeler(url: string): string[] {
+  const i = url.lastIndexOf("/");
+  return i > 0 && i < url.length - 1 ? [url.slice(0, i + 1), url.slice(i + 1)] : [url];
+}
 
 /**
  * Utskriftsvennlig A4-plakat (én side): prosjektnavn, stor QR-kode, tre steg og lenken som tekst.
@@ -28,7 +35,7 @@ export function Plakat({ navn, url, gyldigTil }: { navn: string; url: string; gy
         {PLAKAT_TEKST.steg.map((s) => <li key={s}>{s}</li>)}
       </ol>
       <p className="plakat-personvern">{PLAKAT_TEKST.personvern}</p>
-      <p className="plakat-lenke"><span>{PLAKAT_TEKST.lenkeIntro}</span><br />{url}</p>
+      <p className="plakat-lenke"><span className="plakat-lenkeintro">{PLAKAT_TEKST.lenkeIntro}</span><br />{lenkeDeler(url).map((d, i) => <Fragment key={i}>{i > 0 && <wbr />}<span className="plakat-lenkedel">{d}</span></Fragment>)}</p>
       <p className="plakat-gyldig">Gyldig til {fmtDate(gyldigTil)}</p>
     </div>
   );

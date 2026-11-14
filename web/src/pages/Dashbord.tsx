@@ -58,9 +58,10 @@ export function Dashbord({ id }: { id: string | null }) {
       <p className="small muted" style={{ margin: 0 }}>Offentlig dashbord</p>
       <h1 ref={h1} tabIndex={-1}>{d ? d.prosjekt.navn : "Dashbord"}</h1>
       {d?.prosjekt.status === "arkivert" && <p className="small muted">Prosjektet er arkivert og tar ikke imot nye reiser.</p>}
+      {/* Feil i egen alert-region som alltid ligger i DOM; status/innhold i polite-regionen under (UX 14.11). */}
+      <div role="alert">{svar.status === "feil" && <p className="notice bad">{svar.feil}</p>}</div>
       <div aria-live="polite">
         {svar.status === "laster" && <p className="muted">Henter tall …</p>}
-        {svar.status === "feil" && <p className="notice bad" role="alert">{svar.feil}</p>}
         {d && !d.tilstrekkelig && (
           <div className="card" style={{ textAlign: "center", padding: "28px 16px" }}>
             <div style={{ fontSize: 40 }} aria-hidden="true">🌱</div>

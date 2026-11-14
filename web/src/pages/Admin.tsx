@@ -361,7 +361,7 @@ export function Admin() {
     <section className="admin-page">
       <h1 ref={h1} tabIndex={-1}>Admin</h1>
       <p className="small muted">Midlertidig dev-innlogging. <button type="button" className="linkbtn" onClick={() => { sessionStorage.removeItem(KEY); setKey(""); setProsjekter(null); setNy(null); }}>Logg ut</button></p>
-      <div aria-live="polite">{feil && <p className="notice bad" role="alert">{feil}</p>}</div>
+      <div role="alert">{feil && <p className="notice bad">{feil}</p>}</div>
 
       {ny && (
         <section className="card reveal" aria-labelledby="ny-tittel">
