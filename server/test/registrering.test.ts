@@ -16,6 +16,21 @@ describe("registrering: bare jobb", () => {
     expect(await antall(p)).toBe(1);
   });
 
+  it("svaret røper ikke antall registrerte reiser i prosjektet", async () => {
+    const p = await nyttProsjekt();
+    const { token } = await nyLenke(p);
+    const r = await registrer(token);
+    const tekst = await r.text();
+    expect(r.status).toBe(201);
+    expect(tekst).not.toContain("registrerte_reiser");
+    expect(Object.keys(JSON.parse(tekst)).sort()).toEqual(["besparelse_kg", "faktorversjon", "lagret", "prosjekt", "referanse_kg", "utslipp_kg"]);
+  });
+
+  it("databasen nekter offentlig utenom 0 og 1", async () => {
+    const p = await nyttProsjekt();
+    await expect(env.DB.prepare("UPDATE prosjekt SET offentlig = 2 WHERE id = ?").bind(p).run()).rejects.toThrow();
+  });
+
   it.each([["privat"], ["private"], ["Jobb"], [""], [null], [undefined], [["jobb"]]])("avviser formaal=%j og lagrer ingenting", async (formaal) => {
     const p = await nyttProsjekt();
     const { token } = await nyLenke(p);

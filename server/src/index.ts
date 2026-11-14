@@ -112,11 +112,9 @@ async function registrer(req: Request, env: Env, naa: number): Promise<Response>
   ).run();
 
   if (Math.random() < 0.05) await rydd(env.DB, naa);
-  const nReiser = (await env.DB.prepare("SELECT COUNT(*) AS n FROM reise WHERE prosjekt_id = ? AND skjult = 0").bind(l.prosjekt_id).first<{ n: number }>())?.n ?? 0;
   return json({
     lagret: true,
     prosjekt: { id: l.prosjekt_id, navn: l.navn, offentlig: l.offentlig !== 0 },
-    registrerte_reiser: nReiser,
     utslipp_kg: res.emissionsKg, referanse_kg: res.baselineKg, besparelse_kg: res.savingsKg, faktorversjon: FACTOR_VERSION,
   }, 201);
 }

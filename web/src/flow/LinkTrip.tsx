@@ -40,7 +40,7 @@ export function LinkTrip({ token, prosjekt }: { token: string; prosjekt: LenkePr
   const [attempted, setAttempted] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [lagret, setLagret] = useState<{ savingsKg: number; registrerte_reiser?: number } | null>(null);
+  const [lagret, setLagret] = useState<{ savingsKg: number } | null>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const thanksRef = useRef<HTMLDivElement>(null);
@@ -111,7 +111,7 @@ export function LinkTrip({ token, prosjekt }: { token: string; prosjekt: LenkePr
     setSending(true);
     setSendError(null);
     try {
-      const r = await api<{ registrerte_reiser?: number }>("/api/reiser", { method: "POST", body: JSON.stringify(payload) });
+      const r = await api<unknown>("/api/reiser", { method: "POST", body: JSON.stringify(payload) });
       if (!r.ok) {
         setSendError(r.status === 404
           ? "Lenken er ikke gyldig lenger. Turen er ikke sendt. Be om en ny lenke."
@@ -120,7 +120,7 @@ export function LinkTrip({ token, prosjekt }: { token: string; prosjekt: LenkePr
       }
       trip.sentTo = prosjekt.navn;
       saveTrips([trip, ...loadTrips()]);
-      setLagret({ savingsKg: result.savingsKg, registrerte_reiser: r.data.registrerte_reiser });
+      setLagret({ savingsKg: result.savingsKg });
       setStep(3);
     } finally {
       setSending(false);
@@ -257,11 +257,6 @@ export function LinkTrip({ token, prosjekt }: { token: string; prosjekt: LenkePr
             <p style={{ margin: 0 }}>
               <b>{fmtKg(lagret.savingsKg)} kg CO₂e</b> spart mot bensinbil alene.
             </p>
-            {lagret.registrerte_reiser != null && (
-              <p className="small muted" style={{ margin: "6px 0 0" }}>
-                Prosjektet har nå {lagret.registrerte_reiser.toLocaleString("nb-NO")} registrerte reiser.
-              </p>
-            )}
           </div>
           {prosjekt.offentlig ? (
             <Button onClick={() => { window.location.hash = `#/dashbord/${prosjekt.id}`; }}>
