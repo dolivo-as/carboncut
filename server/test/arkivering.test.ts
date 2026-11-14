@@ -34,23 +34,51 @@ describe("arkivering: admin arkiverer og gjenoppretter prosjekt", () => {
     expect(await svarBilde(await lenke(token))).toEqual(await svarBilde(await lenke(UKJENT_TOKEN)));
   });
 
-  it("ingenting slettes: reiser og lenker står urørt, og gjenoppretting gjør lenken gyldig igjen", async () => {
+  it("ingenting slettes: reiser og lenkerader står, men aktive lenker trekkes tilbake for godt", async () => {
     const p = await nyttProsjekt("Fiktivt arkivprosjekt B");
     const { token, id } = await nyLenke(p);
     expect((await registrer(token)).status).toBe(201);
-    const antall = async () => (await env.DB.prepare("SELECT COUNT(*) AS n FROM reise WHERE prosjekt_id = ?").bind(p).first<{ n: number }>())!.n;
-    const lenkeRad = () => env.DB.prepare("SELECT * FROM lenke WHERE id = ?").bind(id).first();
-    const forLenke = await lenkeRad();
+    const antall = async (tabell: "reise" | "lenke") =>
+      (await env.DB.prepare(`SELECT COUNT(*) AS n FROM ${tabell} WHERE prosjekt_id = ?`).bind(p).first<{ n: number }>())!.n;
+    const lenkerFor = await antall("lenke");
+    const aktive = async () =>
+      (await env.DB.prepare("SELECT COUNT(*) AS n FROM lenke WHERE prosjekt_id = ? AND trukket_tilbake IS NULL").bind(p).first<{ n: number }>())!.n;
+    expect(await aktive()).toBe(2); // første lenke fra opprettelsen + nyLenke
 
     expect((await arkiver(p)).status).toBe(200);
-    expect(await antall()).toBe(1);
-    expect(await lenkeRad()).toEqual(forLenke);
+    expect(await antall("reise")).toBe(1);
+    expect(await antall("lenke")).toBe(lenkerFor);
+    expect(await aktive()).toBe(0);
+    const rad = await env.DB.prepare("SELECT trukket_tilbake FROM lenke WHERE id = ?").bind(id).first<{ trukket_tilbake: string | null }>();
+    expect(rad!.trukket_tilbake).not.toBeNull();
+    // Samme logg som «Trekk tilbake»: én rad per lenke.
+    expect(await loggFor(id)).toContain("trekk_tilbake_lenke");
+  });
 
+  it("gammel lenke virker ikke etter gjenoppretting (samme 404), ny lenke virker", async () => {
+    const p = await nyttProsjekt("Fiktivt arkivprosjekt B2");
+    const { token } = await nyLenke(p);
+    expect((await registrer(token)).status).toBe(201);
+    expect((await arkiver(p)).status).toBe(200);
     const g = await gjenopprett(p);
     expect(g.status).toBe(200);
     expect(await g.json()).toEqual({ prosjekt: { id: p, status: "aktiv" } });
-    expect((await registrer(token)).status).toBe(201);
-    expect(await antall()).toBe(2);
+
+    expect(await svarBilde(await registrer(token))).toEqual(await svarBilde(await registrer(UKJENT_TOKEN)));
+    const lenke = (t: string) => kall("/api/lenke", { method: "POST", body: JSON.stringify({ token: t }) });
+    expect(await svarBilde(await lenke(token))).toEqual(await svarBilde(await lenke(UKJENT_TOKEN)));
+
+    // «Forny» på en tilbaketrukket lenke virker etter gjenoppretting (det admin får fokus på i UI).
+    const gammelId = (await env.DB.prepare("SELECT id FROM lenke WHERE prosjekt_id = ? ORDER BY opprettet DESC LIMIT 1").bind(p).first<{ id: string }>())!.id;
+    const f = await kall(`/api/admin/lenker/${gammelId}/forny`, { method: "POST", admin: true });
+    expect(f.status).toBe(201);
+    const fornyet = (await f.json()) as { token: string };
+    expect((await registrer(fornyet.token)).status).toBe(201);
+    expect(await svarBilde(await registrer(token))).toEqual(await svarBilde(await registrer(UKJENT_TOKEN)));
+
+    // «Lag ny delelenke» er også tilgjengelig igjen etter gjenoppretting.
+    const ny = await nyLenke(p);
+    expect((await registrer(ny.token)).status).toBe(201);
   });
 
   it("arkivert prosjekt: ny lenke og fornying gir 409, tilbaketrekking går fortsatt", async () => {

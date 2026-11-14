@@ -1,13 +1,16 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Arkivering, erArkivert } from "./pages/Admin";
+import { ARKIV_TEKST, ArkiverDialog, Arkivering, delProsjekter, erArkivert, ProsjektListe, trengerForny, type Lenke, type Prosjekt } from "./pages/Admin";
 
 const ingenting = () => {};
 const vis = (status: string, bekrefter = false) =>
   renderToStaticMarkup(createElement(Arkivering, {
-    status, bekrefter, onBe: ingenting, onBekreft: ingenting, onAvbryt: ingenting, onGjenopprett: ingenting,
+    navn: "Fiktivt prosjekt Nord", status, bekrefter, onBe: ingenting, onBekreft: ingenting, onAvbryt: ingenting, onGjenopprett: ingenting,
   }));
+const p = (id: string, status: string): Prosjekt => ({ id, navn: `Fiktivt ${id}`, status, registrerte_reiser: 0, offentlig: true });
+const lenke = (id: string, opprettet: string, trukket: string | null = null): Lenke =>
+  ({ id, prefiks: "abcdef", opprettet, utloper: "2027-11-14T00:00:00Z", trukket_tilbake: trukket });
 
 describe("arkivering i admin", () => {
   it("bare «aktiv» regnes som ikke arkivert", () => {
@@ -15,27 +18,77 @@ describe("arkivering i admin", () => {
     expect(erArkivert("arkivert")).toBe(true);
   });
 
-  it("aktivt prosjekt: én knapp, ingen arkivering uten bekreftelse", () => {
+  it("aktivt prosjekt: sekundær tekstknapp, ikke rød, med skillelinje over", () => {
     const html = vis("aktiv");
     expect(html).toContain("Arkiver prosjekt…");
-    expect(html).not.toContain("Bekreft: arkiver");
+    expect(html).toContain('class="linkbtn"');
+    expect(html).not.toMatch(/danger/);
+    expect(html).toMatch(/border-top/);
     expect(html).not.toContain("Gjenopprett");
   });
 
-  it("bekreftelsen sier hva som skjer, og at ingenting slettes", () => {
+  it("bekreftelsen har UX-tittel, eksakt brødtekst og knappene Arkiver/Avbryt", () => {
     const html = vis("aktiv", true);
-    expect(html).toContain("Bekreft: arkiver");
-    expect(html).toContain("Avbryt");
-    expect(html).toMatch(/delelenker slutter å virke/);
-    expect(html).toMatch(/Ingen data slettes/);
-    expect(html).toContain('role="alert"');
+    expect(html).toContain("Arkivere Fiktivt prosjekt Nord?");
+    expect(html).toContain("Lenken og QR-koden slutter å virke for godt, og prosjektet tar ikke imot nye reiser. Tallene på dashbordet blir stående. Du kan gjenopprette prosjektet senere, men da må du lage en ny lenke.");
+    expect(html).toContain('role="alertdialog"');
+    expect(html).toMatch(/>Arkiver<\/button>/);
+    expect(html).toMatch(/>Avbryt<\/button>/);
+    expect(html).not.toMatch(/danger/);
+    expect(html).not.toContain("Arkiver prosjekt…");
   });
 
-  it("arkivert prosjekt: viser status og gjenoppretting, ikke arkiver-knappen", () => {
+  it("dialogen viser Arkiver før Avbryt (fokus på Avbryt settes i useEffect og er ikke DOM-testet)", () => {
+    // SSR kjører ikke effekter; vi sjekker at rekkefølgen er Arkiver, Avbryt og at begge finnes.
+    const html = renderToStaticMarkup(createElement(ArkiverDialog, { navn: "X", onArkiver: ingenting, onAvbryt: ingenting }));
+    expect(html.indexOf(">Arkiver<")).toBeLessThan(html.indexOf(">Avbryt<"));
+  });
+
+  it("arkivert prosjekt: gjenoppretting uten advarsel, med CTOs tekst", () => {
     const html = vis("arkivert", true);
-    expect(html).toContain("Prosjektet er arkivert.");
     expect(html).toContain("Gjenopprett prosjekt");
+    expect(html).toContain("Prosjektet tar imot reiser igjen når du lager en ny lenke. Gamle lenker og QR-plakater virker ikke lenger.");
+    expect(html).not.toContain("alertdialog");
     expect(html).not.toContain("Arkiver prosjekt…");
-    expect(html).not.toContain("Bekreft: arkiver");
+  });
+
+  it("statusteksten etter gjenoppretting er UX-teksten", () => {
+    expect(ARKIV_TEKST.gjenopprettetStatus).toBe("Prosjektet er gjenopprettet. Lag en ny lenke med «Forny» før du deler eller skriver ut QR-koden igjen.");
+  });
+});
+
+describe("adminlista: arkiverte for seg", () => {
+  it("deler i aktive og arkiverte og beholder rekkefølgen", () => {
+    const d = delProsjekter([p("a", "aktiv"), p("b", "arkivert"), p("c", "aktiv")]);
+    expect(d.aktive.map((x) => x.id)).toEqual(["a", "c"]);
+    expect(d.arkiverte.map((x) => x.id)).toEqual(["b"]);
+  });
+
+  it("aktive øverst, arkiverte i lukket <details> med antall og tekstmerket «Arkivert»", () => {
+    const html = renderToStaticMarkup(createElement(ProsjektListe, { prosjekter: [p("b", "arkivert"), p("a", "aktiv"), p("d", "arkivert")], valgt: null, onVelg: ingenting }));
+    expect(html).toContain("<summary>Arkiverte prosjekter (2)</summary>");
+    expect(html).not.toMatch(/<details[^>]*open/);
+    expect(html.indexOf("Fiktivt a")).toBeLessThan(html.indexOf("<details"));
+    expect(html.indexOf("Fiktivt b")).toBeGreaterThan(html.indexOf("<details"));
+    expect(html.match(/>Arkivert</g)).toHaveLength(2);
+  });
+
+  it("ingen arkiverte: ingen <details>", () => {
+    const html = renderToStaticMarkup(createElement(ProsjektListe, { prosjekter: [p("a", "aktiv")], valgt: null, onVelg: ingenting }));
+    expect(html).not.toContain("<details");
+  });
+});
+
+describe("«Forny» etter gjenoppretting", () => {
+  const naa = "2026-11-14T12:00:00Z";
+  it("vises når prosjektet er aktivt og alle lenker er trukket tilbake, og fornyer den nyeste", () => {
+    const l = [lenke("gammel", "2026-11-01T00:00:00Z", "2026-11-10T00:00:00Z"), lenke("nyest", "2026-11-05T00:00:00Z", "2026-11-10T00:00:00Z")];
+    expect(trengerForny("aktiv", l, naa)?.id).toBe("nyest");
+  });
+  it("vises ikke for arkivert prosjekt, uten lenker, eller når en lenke er aktiv", () => {
+    const trukket = lenke("t", "2026-11-01T00:00:00Z", "2026-11-10T00:00:00Z");
+    expect(trengerForny("arkivert", [trukket], naa)).toBeNull();
+    expect(trengerForny("aktiv", [], naa)).toBeNull();
+    expect(trengerForny("aktiv", [trukket, lenke("aktiv", "2026-11-12T00:00:00Z")], naa)).toBeNull();
   });
 });

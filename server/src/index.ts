@@ -208,19 +208,33 @@ async function admin(req: Request, env: Env, sti: string[], naa: number): Promis
   }
 
   // /api/admin/prosjekter/:id/(arkiver|gjenopprett)
-  // Arkivert: nye reiser og lenkeoppslag gir samme 404 som ukjent lenke (finnGyldigLenke), nye lenker og
-  // fornying gir 409. Ingenting slettes, og lenkene røres ikke, så gjenoppretting er fullt reversibel.
+  // Arkivering (CTO 14.11): prosjektet settes til arkivert, og alle aktive lenker trekkes tilbake for godt
+  // i samme D1-batch (samme mekanisme og logg som «Trekk tilbake»). Reiser og lenkerader slettes ikke.
+  // Gjenoppretting gjør IKKE gamle lenker gyldige; admin må lage en ny lenke og QR-kode.
   if (sti.length === 3 && sti[0] === "prosjekter" && m === "POST" && (sti[2] === "arkiver" || sti[2] === "gjenopprett")) {
     if (!UUID_RE.test(sti[1])) return feil(404, "Fant ikke prosjektet.");
     const p = await env.DB.prepare("SELECT id, status FROM prosjekt WHERE id = ? AND bedrift_id = ?").bind(sti[1], bedrift).first<{ id: string; status: string }>();
     if (!p) return feil(404, "Fant ikke prosjektet.");
-    const ny = sti[2] === "arkiver" ? "arkivert" : "aktiv";
+    const arkiver = sti[2] === "arkiver";
+    const ny = arkiver ? "arkivert" : "aktiv";
     // Idempotent: samme tilstand to ganger gir 200 og logges ikke på nytt.
     if (p.status !== ny) {
-      await env.DB.batch([
+      const setninger = [
         env.DB.prepare("UPDATE prosjekt SET status = ? WHERE id = ?").bind(ny, p.id),
-        logg(env, a.adminId, sti[2] === "arkiver" ? "arkiver_prosjekt" : "gjenopprett_prosjekt", p.id, naa),
-      ]);
+        logg(env, a.adminId, arkiver ? "arkiver_prosjekt" : "gjenopprett_prosjekt", p.id, naa),
+      ];
+      if (arkiver) {
+        const { results } = await env.DB.prepare(
+          "SELECT id FROM lenke WHERE prosjekt_id = ? AND trukket_tilbake IS NULL AND utloper > ?",
+        ).bind(p.id, iso(naa)).all<{ id: string }>();
+        for (const l of results) {
+          setninger.push(
+            env.DB.prepare("UPDATE lenke SET trukket_tilbake = ? WHERE id = ? AND trukket_tilbake IS NULL").bind(iso(naa), l.id),
+            logg(env, a.adminId, "trekk_tilbake_lenke", l.id, naa),
+          );
+        }
+      }
+      await env.DB.batch(setninger);
     }
     return json({ prosjekt: { id: p.id, status: ny } });
   }
