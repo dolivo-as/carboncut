@@ -101,3 +101,12 @@ describe("«Lag ny lenke» etter gjenoppretting", () => {
     expect(ingenAktivLenke("aktiv", [utlopt], naa)).toBe(true);
   });
 });
+
+describe("live-regioner i admin", () => {
+  it("statusmeldingene for reiser og arkivering ligger ikke i nestede live-regioner", async () => {
+    const { readFileSync } = await import("node:fs");
+    const kilde = readFileSync(new URL("./pages/Admin.tsx", import.meta.url), "utf8");
+    expect(kilde).not.toMatch(/aria-live="polite">\{(status|arkivStatus) && <p[^>]*role="status"/);
+    expect(kilde).toContain('<div aria-live="polite">{arkivStatus && <p className="notice">{arkivStatus}</p>}</div>');
+  });
+});

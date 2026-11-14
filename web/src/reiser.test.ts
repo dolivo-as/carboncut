@@ -76,7 +76,9 @@ describe("skjul reiser: visning", () => {
     expect(vis({ reiser: [], totalt: 0, skjulte: 0, maks: 200 })).toContain("Ingen registrerte reiser ennå.");
     expect(vis(null)).toContain("Henter");
     const html = vis({ reiser: [reise()], totalt: 1, skjulte: 0, maks: 200 }, REISE_TEKST.skjult);
-    expect(html).toMatch(/aria-live="polite"><p class="notice" role="status">Reisen er skjult/);
+    // Én live-region: wrapperen har aria-live, <p> inni har ingen egen rolle (UX 14.11, unngår dobbel opplesning).
+    expect(html).toMatch(/aria-live="polite"><p class="notice">Reisen er skjult/);
+    expect(html).not.toContain('role="status"');
   });
 
   it("viser aldri ord som peker på personer eller lenker", () => {

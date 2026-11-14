@@ -163,7 +163,7 @@ export function ReiseListe({ svar, status, onSkjul, onVis }: {
   return (
     <>
       <p className="small muted">{REISE_TEKST.intro}</p>
-      <div aria-live="polite">{status && <p className="notice" role="status">{status}</p>}</div>
+      <div aria-live="polite">{status && <p className="notice">{status}</p>}</div>
       {svar === null ? <p className="muted">Henter …</p> : svar.reiser.length === 0 ? <p className="muted">Ingen registrerte reiser ennå.</p> : (
         <>
           <p className="small">
@@ -407,7 +407,7 @@ export function Admin() {
       {prosjekt && (
         <section className="card" aria-labelledby="l-tittel" ref={kortRef} tabIndex={-1}>
           <h2 id="l-tittel">{prosjekt.navn}{erArkivert(prosjekt.status) && <> <span className="tag none">Arkivert</span></>}</h2>
-          <div aria-live="polite">{arkivStatus && <p className="notice" role="status">{arkivStatus}</p>}</div>
+          <div aria-live="polite">{arkivStatus && <p className="notice">{arkivStatus}</p>}</div>
           <h3 style={{ fontSize: 17 }}>Delelenker</h3>
           {prosjekt.offentlig !== false
             ? <p className="small"><a href={dashbordUrl(origin(), prosjekt.id)}>Åpent dashbord for prosjektet</a></p>
