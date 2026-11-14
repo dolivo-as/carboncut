@@ -44,6 +44,9 @@ export function LinkTrip({ token, prosjekt }: { token: string; prosjekt: LenkePr
   const honeypotRef = useRef<HTMLInputElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const thanksRef = useRef<HTMLDivElement>(null);
+  const sendErrorRef = useRef<HTMLParagraphElement>(null);
+  // Når innsendingen feiler, er «Send inn» deaktivert mens den sender; flytt fokus til feilmeldingen så tastaturbrukeren ikke havner på body.
+  useEffect(() => { if (sendError) sendErrorRef.current?.focus(); }, [sendError]);
 
   useEffect(() => {
     if (step === 3) thanksRef.current?.focus();
@@ -244,7 +247,7 @@ export function LinkTrip({ token, prosjekt }: { token: string; prosjekt: LenkePr
               <p className="small muted" style={{ margin: 0 }}>Tallet oppdateres mens du skriver.</p>
             )}
           </div>
-          {sendError && <p className="notice bad" role="alert">{sendError}</p>}
+          {sendError && <p className="notice bad" role="alert" ref={sendErrorRef} tabIndex={-1}>{sendError}</p>}
         </>
       )}
 

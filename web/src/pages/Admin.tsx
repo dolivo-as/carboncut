@@ -6,6 +6,7 @@ import { Qr } from "../components/Qr";
 import { SegmentedChoice } from "../components/SegmentedChoice";
 import { UTLØP_FORVALGT, type UtloperMaaneder } from "../flowLogic";
 import { fmtDate } from "../format";
+import { reiserTekst } from "../dashbordTyper";
 import { dashbordUrl, lenkeUrl } from "../route";
 
 interface Prosjekt { id: string; navn: string; status: string; registrerte_reiser: number; offentlig?: boolean }
@@ -183,7 +184,7 @@ export function Admin() {
                 <button type="button" className="prow" aria-pressed={valgt === p.id} onClick={() => { setValgt(p.id); setNy(null); }}>
                   <span className="t">{p.navn}</span>
                   <span className="small muted">
-                    {p.registrerte_reiser.toLocaleString("nb-NO")} registrerte reiser
+                    {reiserTekst(p.registrerte_reiser)}
                     {p.offentlig === false ? " · skjult dashbord" : ""}
                     {p.status !== "aktiv" ? " · arkivert" : ""}
                   </span>
