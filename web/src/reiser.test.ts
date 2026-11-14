@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { flereAar, REISE_TEKST, ReiseListe, reiseLinje, ukeTekst, type AdminReise, type ReiseSvar } from "./pages/Admin";
+import { flereAar, REISE_TEKST, ReiseKort, ReiseListe, reiseLinje, ukeTekst, type AdminReise, type ReiseSvar } from "./pages/Admin";
 
 const ingenting = () => {};
 const reise = (ekstra: Partial<AdminReise> = {}): AdminReise => ({
@@ -32,6 +32,22 @@ describe("skjul reiser: visning", () => {
     const html = vis({ reiser: [reise()], totalt: 1, skjulte: 0, maks: 200 });
     expect(html).not.toMatch(/\d{1,2}\. (jan|feb|mar|apr|mai|jun|jul|aug|sep|okt|nov|des)/);
     expect(html).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+  });
+
+  it("«Registrerte reiser (n)» er en lukket <details> med antall (også skjulte)", () => {
+    const html = renderToStaticMarkup(createElement(ReiseKort, { svar: { reiser: [reise()], totalt: 7, skjulte: 2, maks: 200 }, status: "", onSkjul: ingenting, onVis: ingenting }));
+    expect(html).toMatch(/^<details class="reise-kort"><summary>/);
+    expect(html).not.toMatch(/<details[^>]*open/);
+    expect(html).toContain("Registrerte reiser (7)");
+    const laster = renderToStaticMarkup(createElement(ReiseKort, { svar: null, status: "", onSkjul: ingenting, onVis: ingenting }));
+    expect(laster).toContain(">Registrerte reiser</h2>");
+  });
+
+  it("én knapp per rad som bytter tekst (fokus blir på samme knapp), minst 44 px via .reise-knapp", () => {
+    const html = vis({ reiser: [reise(), reise({ id: "r2", skjult: true })], totalt: 2, skjulte: 1, maks: 200 });
+    expect(html.match(/<button[^>]*class="btn secondary reise-knapp"[^>]*>(Skjul|Vis igjen)<\/button>/g)).toHaveLength(2);
+    expect(html.match(/<li class="lrow reise-rad">/g)).toHaveLength(2);
+    expect(html).not.toMatch(/alertdialog|Bekreft/);
   });
 
   it("synlig reise har «Skjul», skjult reise har merket «Skjult» og «Vis igjen»", () => {

@@ -680,6 +680,17 @@ a { color: var(--fg); font-weight: 700; }
 .prow[aria-pressed="true"] .muted { color: var(--primary-soft-fg); }
 .lrow { border-top: 1px solid var(--edge); padding-top: 10px; }
 .lrow:first-child { border-top: 0; padding-top: 0; }
+/* Registrerte reiser: én kompakt rad per reise, knapp minst 44 px høy (UX 14.11). */
+.reise-kort > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 800; }
+.reise-rad { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.reise-tekst { min-width: 0; flex: 1 1 auto; }
+.reise-tekst .t { font-weight: 700; overflow-wrap: anywhere; }
+.reise-spart { display: block; margin-top: 2px; }
+.btn.reise-knapp { width: auto; flex: 0 0 auto; min-height: 44px; padding: 0 14px; font-size: 16px; }
+@media (max-width: 700px) {
+  .reise-spart { display: none; }
+  .reise-tekst .t { font-size: var(--fs-sm); }
+}
 .dlist { list-style: none; margin: 8px 0 0; padding: 0; }
 .dlist li { margin: 0 0 12px; }
 .dlist .cap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; font-weight: 700; font-size: var(--fs-sm); margin: 0 0 4px; }

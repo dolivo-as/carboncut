@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ARKIV_TEKST, ArkiverDialog, Arkivering, delProsjekter, erArkivert, ProsjektListe, trengerForny, type Lenke, type Prosjekt } from "./pages/Admin";
+import { ARKIV_TEKST, ArkiverDialog, Arkivering, delProsjekter, erArkivert, ingenAktivLenke, lagLenkeTekst, ProsjektListe, type Lenke, type Prosjekt } from "./pages/Admin";
 
 const ingenting = () => {};
 const vis = (status: string, bekrefter = false) =>
@@ -46,14 +46,18 @@ describe("arkivering i admin", () => {
 
   it("arkivert prosjekt: gjenoppretting uten advarsel, med CTOs tekst", () => {
     const html = vis("arkivert", true);
-    expect(html).toContain("Gjenopprett prosjekt");
+    expect(html).toMatch(/<button type="button" class="btn secondary">Gjenopprett prosjekt<\/button>/);
     expect(html).toContain("Prosjektet tar imot reiser igjen når du lager en ny lenke. Gamle lenker og QR-plakater virker ikke lenger.");
     expect(html).not.toContain("alertdialog");
     expect(html).not.toContain("Arkiver prosjekt…");
   });
 
   it("statusteksten etter gjenoppretting er UX-teksten", () => {
-    expect(ARKIV_TEKST.gjenopprettetStatus).toBe("Prosjektet er gjenopprettet. Lag en ny lenke med «Forny» før du deler eller skriver ut QR-koden igjen.");
+    expect(ARKIV_TEKST.gjenopprettetStatus).toBe("Prosjektet er gjenopprettet. Lag en ny lenke med «Lag ny lenke» før du deler eller skriver ut QR-koden igjen.");
+  });
+
+  it("statusteksten etter arkivering er UX-teksten i tre setninger", () => {
+    expect(ARKIV_TEKST.arkivertStatus).toBe("Prosjektet er arkivert. Lenken og QR-koden virker ikke lenger. Tallene på dashbordet blir stående.");
   });
 });
 
@@ -79,16 +83,21 @@ describe("adminlista: arkiverte for seg", () => {
   });
 });
 
-describe("«Forny» etter gjenoppretting", () => {
+describe("«Lag ny lenke» etter gjenoppretting", () => {
   const naa = "2026-11-14T12:00:00Z";
-  it("vises når prosjektet er aktivt og alle lenker er trukket tilbake, og fornyer den nyeste", () => {
-    const l = [lenke("gammel", "2026-11-01T00:00:00Z", "2026-11-10T00:00:00Z"), lenke("nyest", "2026-11-05T00:00:00Z", "2026-11-10T00:00:00Z")];
-    expect(trengerForny("aktiv", l, naa)?.id).toBe("nyest");
+  const trukket = lenke("t", "2026-11-01T00:00:00Z", "2026-11-10T00:00:00Z");
+  it("heter «Lag ny lenke» når prosjektet er aktivt og ingen lenke er aktiv (også uten lenker)", () => {
+    expect(ingenAktivLenke("aktiv", [trukket], naa)).toBe(true);
+    expect(ingenAktivLenke("aktiv", [], naa)).toBe(true);
+    expect(lagLenkeTekst(true)).toBe("Lag ny lenke");
   });
-  it("vises ikke for arkivert prosjekt, uten lenker, eller når en lenke er aktiv", () => {
-    const trukket = lenke("t", "2026-11-01T00:00:00Z", "2026-11-10T00:00:00Z");
-    expect(trengerForny("arkivert", [trukket], naa)).toBeNull();
-    expect(trengerForny("aktiv", [], naa)).toBeNull();
-    expect(trengerForny("aktiv", [trukket, lenke("aktiv", "2026-11-12T00:00:00Z")], naa)).toBeNull();
+  it("heter «Lag ny delelenke» når en lenke er aktiv, og gjelder ikke arkivert prosjekt", () => {
+    expect(ingenAktivLenke("aktiv", [trukket, lenke("aktiv", "2026-11-12T00:00:00Z")], naa)).toBe(false);
+    expect(lagLenkeTekst(false)).toBe("Lag ny delelenke");
+    expect(ingenAktivLenke("arkivert", [trukket], naa)).toBe(false);
+  });
+  it("utløpt lenke regnes ikke som aktiv", () => {
+    const utlopt = { ...lenke("u", "2025-01-01T00:00:00Z"), utloper: "2026-01-01T00:00:00Z" };
+    expect(ingenAktivLenke("aktiv", [utlopt], naa)).toBe(true);
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type Ref } from "react";
 import { api, serverAvailable } from "../api";
 import { Button } from "../components/Button";
 import { Field } from "../components/Field";
@@ -30,13 +30,13 @@ export function delProsjekter<T extends { status: string }>(ps: T[]): { aktive: 
   return { aktive: ps.filter((p) => !erArkivert(p.status)), arkiverte: ps.filter((p) => erArkivert(p.status)) };
 }
 
-/** Tekster godkjent av UX/CTO 14.11. ARKIVERT_STATUS er Fullstacks forslag (ikke gitt av UX). */
+/** Tekster godkjent av UX/CTO 14.11. */
 export const ARKIV_TEKST = {
   tittel: (navn: string) => `Arkivere ${navn}?`,
   brod: "Lenken og QR-koden slutter å virke for godt, og prosjektet tar ikke imot nye reiser. Tallene på dashbordet blir stående. Du kan gjenopprette prosjektet senere, men da må du lage en ny lenke.",
   gjenopprettInfo: "Prosjektet tar imot reiser igjen når du lager en ny lenke. Gamle lenker og QR-plakater virker ikke lenger.",
-  gjenopprettetStatus: "Prosjektet er gjenopprettet. Lag en ny lenke med «Forny» før du deler eller skriver ut QR-koden igjen.",
-  arkivertStatus: "Prosjektet er arkivert. Lenken og QR-koden virker ikke lenger, og tallene på dashbordet blir stående.",
+  gjenopprettetStatus: "Prosjektet er gjenopprettet. Lag en ny lenke med «Lag ny lenke» før du deler eller skriver ut QR-koden igjen.",
+  arkivertStatus: "Prosjektet er arkivert. Lenken og QR-koden virker ikke lenger. Tallene på dashbordet blir stående.",
 } as const;
 
 /** Bekreftelse før arkivering. Fokus starter på «Avbryt» (UX 14.11). */
@@ -60,7 +60,7 @@ export function ArkiverDialog({ navn, onArkiver, onAvbryt }: { navn: string; onA
  * Aktivt prosjekt: sekundær tekstknapp «Arkiver prosjekt…» (ikke rød), eller bekreftelsen.
  * Arkivert prosjekt: «Gjenopprett prosjekt» uten advarsel, med CTOs tekst.
  */
-export function Arkivering({ navn, status, bekrefter, onBe, onBekreft, onAvbryt, onGjenopprett }: {
+export function Arkivering({ navn, status, bekrefter, onBe, onBekreft, onAvbryt, onGjenopprett, gjenopprettRef }: {
   navn: string;
   status: string;
   bekrefter: boolean;
@@ -68,13 +68,15 @@ export function Arkivering({ navn, status, bekrefter, onBe, onBekreft, onAvbryt,
   onBekreft: () => void;
   onAvbryt: () => void;
   onGjenopprett: () => void;
+  /** Etter arkivering går fokus hit (UX 14.11). */
+  gjenopprettRef?: Ref<HTMLButtonElement>;
 }) {
   return (
     <div className="arkiv" style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--edge)" }}>
       {erArkivert(status) ? (
         <>
           <p className="small" style={{ margin: "0 0 8px" }}>{ARKIV_TEKST.gjenopprettInfo}</p>
-          <Button variant="secondary" onClick={onGjenopprett}>Gjenopprett prosjekt</Button>
+          <button ref={gjenopprettRef} type="button" className="btn secondary" onClick={onGjenopprett}>Gjenopprett prosjekt</button>
         </>
       ) : bekrefter ? (
         <ArkiverDialog navn={navn} onArkiver={onBekreft} onAvbryt={onAvbryt} />
@@ -118,15 +120,14 @@ export function ProsjektListe({ prosjekter, valgt, onVelg }: { prosjekter: Prosj
 }
 
 /**
- * «Forny» på prosjektnivå når prosjektet er aktivt, men ingen lenke er aktiv (typisk etter gjenoppretting,
- * når arkiveringen har trukket tilbake alle). Fornyer den nyeste lenken: serveren lager ny lenke i samme
- * operasjon og logger forny_lenke. Uten lenker i det hele tatt brukes «Lag ny delelenke».
+ * Aktivt prosjekt uten noen aktiv lenke (f.eks. etter gjenoppretting, når arkiveringen har trukket tilbake
+ * alle): knappen på prosjektnivå heter da «Lag ny lenke» (UX/CTO 14.11), ellers «Lag ny delelenke».
+ * Begge lager en ny lenke; gamle, tilbaketrukne lenker forblir tilbaketrukket.
  */
-export function trengerForny(status: string, lenker: Lenke[], naa = new Date().toISOString()): Lenke | null {
-  if (erArkivert(status) || lenker.length === 0) return null;
-  if (lenker.some((l) => lenkeStatus(l, naa) === "aktiv")) return null;
-  return [...lenker].sort((a, b) => b.opprettet.localeCompare(a.opprettet))[0];
+export function ingenAktivLenke(status: string, lenker: Lenke[], naa = new Date().toISOString()): boolean {
+  return !erArkivert(status) && !lenker.some((l) => lenkeStatus(l, naa) === "aktiv");
 }
+export const lagLenkeTekst = (ingenAktiv: boolean) => (ingenAktiv ? "Lag ny lenke" : "Lag ny delelenke");
 
 export interface AdminReise { id: string; uke: number; aar: number; transportmiddel: string; distanse_km: number; tur_retur: boolean; utslipp_kg: number; referanse_kg: number; skjult: boolean }
 export interface ReiseSvar { reiser: AdminReise[]; totalt: number; skjulte: number; maks: number }
@@ -171,23 +172,33 @@ export function ReiseListe({ svar, status, onSkjul, onVis }: {
           </p>
           <ul className="plist">
             {svar.reiser.map((r) => (
-              <li key={r.id} className="lrow">
-                <div>
+              <li key={r.id} className="lrow reise-rad">
+                <div className="reise-tekst">
                   <span className="t">{reiseLinje(r, visAar)}</span>
                   {r.skjult && <> <span className="tag none">Skjult</span></>}
-                  <p className="small muted" style={{ margin: "4px 0 0" }}>Estimert spart {fmtKg(r.referanse_kg - r.utslipp_kg)} kg CO₂e</p>
+                  <span className="small muted reise-spart">Estimert spart {fmtKg(r.referanse_kg - r.utslipp_kg)} kg CO₂e</span>
                 </div>
-                <div className="row-actions">
-                  {r.skjult
-                    ? <Button variant="secondary" onClick={() => onVis(r.id)}>Vis igjen</Button>
-                    : <Button variant="secondary" onClick={() => onSkjul(r.id)}>Skjul</Button>}
-                </div>
+                {/* Én knapp som bytter tekst, så fokus blir på samme knapp etter skjul/vis (UX 14.11). */}
+                <button type="button" className="btn secondary reise-knapp" onClick={() => (r.skjult ? onVis(r.id) : onSkjul(r.id))}>
+                  {r.skjult ? "Vis igjen" : "Skjul"}
+                </button>
               </li>
             ))}
           </ul>
         </>
       )}
     </>
+  );
+}
+
+/** «Registrerte reiser (n)» som lukket <details> (UX 14.11). n = alle reiser, også skjulte. */
+export function ReiseKort(props: Parameters<typeof ReiseListe>[0]) {
+  const n = props.svar?.totalt;
+  return (
+    <details className="reise-kort">
+      <summary><h2 style={{ display: "inline", fontSize: "inherit" }}>{n === undefined ? "Registrerte reiser" : `Registrerte reiser (${n})`}</h2></summary>
+      <div style={{ marginTop: 12 }}><ReiseListe {...props} /></div>
+    </details>
   );
 }
 
@@ -208,9 +219,10 @@ export function Admin() {
   const [arkivStatus, setArkivStatus] = useState("");
   const [reiser, setReiser] = useState<ReiseSvar | null>(null);
   const [reiseStatus, setReiseStatus] = useState("");
-  const [fokus, setFokus] = useState<null | "kort" | "forny">(null);
+  const [fokus, setFokus] = useState<null | "gjenopprett" | "lagLenke">(null);
   const kortRef = useRef<HTMLElement>(null);
-  const fornyRef = useRef<HTMLButtonElement>(null);
+  const lagLenkeRef = useRef<HTMLButtonElement>(null);
+  const gjenopprettRef = useRef<HTMLButtonElement>(null);
   const [kopiert, setKopiert] = useState(false);
   const h1 = useRef<HTMLHeadingElement>(null);
   const nyRef = useRef<HTMLDivElement>(null);
@@ -289,13 +301,13 @@ export function Admin() {
     setFeil(null); setNy(null);
     await hent();
     await hentLenker(id);
-    // Etter arkivering: fokus til prosjektkortet. Etter gjenoppretting: fokus til «Forny» (UX 14.11).
+    // Etter arkivering: fokus til «Gjenopprett prosjekt». Etter gjenoppretting: fokus til «Lag ny lenke» (UX 14.11).
     setArkivStatus(handling === "arkiver" ? ARKIV_TEKST.arkivertStatus : ARKIV_TEKST.gjenopprettetStatus);
-    setFokus(handling === "arkiver" ? "kort" : "forny");
+    setFokus(handling === "arkiver" ? "gjenopprett" : "lagLenke");
   }
   useEffect(() => {
     if (!fokus) return;
-    const el = fokus === "forny" ? (fornyRef.current ?? kortRef.current) : kortRef.current;
+    const el = (fokus === "lagLenke" ? lagLenkeRef.current : gjenopprettRef.current) ?? kortRef.current;
     if (el) { el.focus(); setFokus(null); }
   }, [fokus, lenker, prosjekter]);
 
@@ -400,14 +412,13 @@ export function Admin() {
           {prosjekt.offentlig !== false
             ? <p className="small"><a href={dashbordUrl(origin(), prosjekt.id)}>Åpent dashbord for prosjektet</a></p>
             : <p className="small muted">Dashbordet er skjult. Det gir samme svar som et ukjent prosjekt.</p>}
-          <Button variant="secondary" onClick={() => void lagLenke(`/api/admin/prosjekter/${prosjekt.id}/lenker`, utloper)} disabled={prosjekt.status !== "aktiv"}>Lag ny delelenke</Button>
           {(() => {
-            const gammel = trengerForny(prosjekt.status, lenker);
-            return gammel && (
-              <>
-                {" "}
-                <button ref={fornyRef} type="button" className="btn" onClick={() => void lagLenke(`/api/admin/lenker/${gammel.id}/forny`)}>Forny</button>
-              </>
+            const ingen = ingenAktivLenke(prosjekt.status, lenker);
+            return (
+              <button ref={lagLenkeRef} type="button" className={ingen ? "btn" : "btn secondary"} disabled={prosjekt.status !== "aktiv"}
+                onClick={() => void lagLenke(`/api/admin/prosjekter/${prosjekt.id}/lenker`, utloper)}>
+                {lagLenkeTekst(ingen)}
+              </button>
             );
           })()}
           {lenker.length === 0 ? <p className="muted" style={{ marginTop: 12 }}>Ingen lenker ennå.</p> : (
@@ -449,14 +460,14 @@ export function Admin() {
             onBekreft={() => void settArkiv(prosjekt.id, "arkiver")}
             onAvbryt={() => setBekreftArkiv(false)}
             onGjenopprett={() => void settArkiv(prosjekt.id, "gjenopprett")}
+            gjenopprettRef={gjenopprettRef}
           />
         </section>
       )}
 
       {prosjekt && (
-        <section className="card" aria-labelledby="r-tittel">
-          <h2 id="r-tittel">Registrerte reiser</h2>
-          <ReiseListe svar={reiser} status={reiseStatus} onSkjul={(id) => void settSkjult(id, true)} onVis={(id) => void settSkjult(id, false)} />
+        <section className="card">
+          <ReiseKort svar={reiser} status={reiseStatus} onSkjul={(id) => void settSkjult(id, true)} onVis={(id) => void settSkjult(id, false)} />
         </section>
       )}
     </section>
