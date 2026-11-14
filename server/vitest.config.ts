@@ -17,6 +17,8 @@ export default defineConfig(async () => {
             ADMIN_DEV_ID: "00000000-0000-4000-8000-00000000a001",
             DEV_ORIGINS: "http://127.0.0.1:5180",
           },
+          // Egen, tom D1 bare for migreringstesten (0001+0002 med fiktive rader, deretter 0003).
+          d1Databases: { MIGRERINGSTEST: "migreringstest-lokal" },
         },
       }),
     ],

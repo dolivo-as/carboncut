@@ -160,9 +160,9 @@ describe("skjul reiser: ISO-uke", () => {
   });
 });
 
-describe("skjul reiser: migrering 0004", () => {
+describe("skjul reiser: migrering 0003 (vis_reise)", () => {
   it("hendelseslogg godtar vis_reise og avviser ukjente handlinger", async () => {
-    const p = await nyttProsjekt("Fiktivt migrering 0004");
+    const p = await nyttProsjekt("Fiktivt migrering vis_reise");
     const sett = (h: string) =>
       env.DB.prepare("INSERT INTO hendelseslogg (id, administrator_id, handling, mal_id, tid) VALUES (?, ?, ?, ?, '2026-11-14T00:00:00Z')")
         .bind(crypto.randomUUID(), ADMIN, h, p).run();
