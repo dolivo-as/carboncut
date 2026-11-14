@@ -83,7 +83,7 @@ describe("lenke: ukjent, utløpt og trukket gir identisk 404", () => {
     await registrer(token);
     const r = await kall("/api/lenke", { method: "POST", body: JSON.stringify({ token }) });
     expect(r.status).toBe(200);
-    expect(await r.json()).toEqual({ prosjekt: { navn: "Fiktivt prosjekt Sørbru" } });
+    expect(await r.json()).toEqual({ prosjekt: { id: p, navn: "Fiktivt prosjekt Sørbru", offentlig: true } });
   });
 
   it("trekk tilbake avviser nye registreringer straks", async () => {

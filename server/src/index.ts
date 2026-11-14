@@ -7,7 +7,7 @@ import type { Env } from "./env";
 import { feil, json, lenkeUgyldig, lesJson } from "./http";
 import { nyttToken, sha256Hex, TOKEN_RE } from "./krypto";
 import { GRENSE_LENKE_PER_DOGN, rydd, tell, tellIp } from "./misbruk";
-import { validerReise } from "./validering";
+import { lesOffentlig, lesUtloperMaaneder, validerReise } from "./validering";
 
 export type { Env };
 
@@ -18,15 +18,24 @@ function plussMaaneder(ms: number, n: number): string {
   d.setUTCMonth(d.getUTCMonth() + n);
   return d.toISOString();
 }
-const LENKE_GYLDIG_MND = 12;
 
-interface LenkeRad { id: string; prosjekt_id: string; utloper: string; trukket_tilbake: string | null; status: string; navn: string }
+/** Avleder 3, 6 eller 12 måneder fra en eksisterende lenke. Ukjent intervall → 12. */
+function maanederMellom(fra?: string, til?: string): 3 | 6 | 12 {
+  if (!fra || !til) return 12;
+  const a = new Date(fra);
+  const b = new Date(til);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 12;
+  const m = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
+  if (m === 3 || m === 6 || m === 12) return m;
+  return 12;
+}
+interface LenkeRad { id: string; prosjekt_id: string; utloper: string; trukket_tilbake: string | null; status: string; navn: string; offentlig: number }
 
 /** Slår opp lenke på hash. null for ukjent, utløpt, trukket tilbake eller arkivert prosjekt – kalleren svarer likt (404). */
 async function finnGyldigLenke(env: Env, token: unknown, naa: number): Promise<LenkeRad | null> {
   if (typeof token !== "string" || !TOKEN_RE.test(token)) return null;
   const rad = await env.DB.prepare(
-    "SELECT l.id, l.prosjekt_id, l.utloper, l.trukket_tilbake, p.status, p.navn FROM lenke l JOIN prosjekt p ON p.id = l.prosjekt_id WHERE l.token_hash = ?",
+    "SELECT l.id, l.prosjekt_id, l.utloper, l.trukket_tilbake, p.status, p.navn, p.offentlig FROM lenke l JOIN prosjekt p ON p.id = l.prosjekt_id WHERE l.token_hash = ?",
   ).bind(await sha256Hex(token)).first<LenkeRad>();
   if (!rad || rad.trukket_tilbake != null || rad.utloper <= iso(naa) || rad.status !== "aktiv") return null;
   return rad;
@@ -43,7 +52,7 @@ async function lenkeInfo(req: Request, env: Env, naa: number): Promise<Response>
   try { body = (await lesJson(req)) as Record<string, unknown>; } catch { return lenkeUgyldig(); }
   const l = await finnGyldigLenke(env, body?.token, naa);
   if (!l) return lenkeUgyldig();
-  return json({ prosjekt: { navn: l.navn } });
+  return json({ prosjekt: { id: l.prosjekt_id, navn: l.navn, offentlig: l.offentlig !== 0 } });
 }
 
 async function registrer(req: Request, env: Env, naa: number): Promise<Response> {
@@ -103,14 +112,24 @@ async function registrer(req: Request, env: Env, naa: number): Promise<Response>
   ).run();
 
   if (Math.random() < 0.05) await rydd(env.DB, naa);
-  return json({ lagret: true, prosjekt: { navn: l.navn }, utslipp_kg: res.emissionsKg, referanse_kg: res.baselineKg, besparelse_kg: res.savingsKg, faktorversjon: FACTOR_VERSION }, 201);
+  const nReiser = (await env.DB.prepare("SELECT COUNT(*) AS n FROM reise WHERE prosjekt_id = ? AND skjult = 0").bind(l.prosjekt_id).first<{ n: number }>())?.n ?? 0;
+  return json({
+    lagret: true,
+    prosjekt: { id: l.prosjekt_id, navn: l.navn, offentlig: l.offentlig !== 0 },
+    registrerte_reiser: nReiser,
+    utslipp_kg: res.emissionsKg, referanse_kg: res.baselineKg, besparelse_kg: res.savingsKg, faktorversjon: FACTOR_VERSION,
+  }, 201);
 }
 
+/** Samme 404 for ukjent id, ugyldig format og skjult (ikke-offentlig) dashbord. */
+const prosjektUkjent = () => feil(404, "Fant ikke prosjektet.");
+
 async function dashbord(env: Env, prosjektId: string): Promise<Response> {
-  if (!UUID_RE.test(prosjektId)) return feil(404, "Fant ikke prosjektet.");
-  const p = await env.DB.prepare("SELECT id, navn, status, min_gruppe FROM prosjekt WHERE id = ?").bind(prosjektId)
-    .first<{ id: string; navn: string; status: string; min_gruppe: number }>();
-  if (!p) return feil(404, "Fant ikke prosjektet.");
+  if (!UUID_RE.test(prosjektId)) return prosjektUkjent();
+  const p = await env.DB.prepare("SELECT id, navn, status, min_gruppe, offentlig FROM prosjekt WHERE id = ?").bind(prosjektId)
+    .first<{ id: string; navn: string; status: string; min_gruppe: number; offentlig: number }>();
+  // Skjult dashbord skal ikke røpe at prosjektet finnes.
+  if (!p || p.offentlig === 0) return prosjektUkjent();
   const { results } = await env.DB.prepare(
     "SELECT substr(dato, 1, 7) AS maaned, transportmiddel, COUNT(*) AS antall, SUM(referanse_kg - utslipp_kg) AS spart, SUM(utslipp_kg) AS utslipp " +
       "FROM reise WHERE prosjekt_id = ? AND skjult = 0 GROUP BY 1, 2",
@@ -130,10 +149,10 @@ const logg = (env: Env, adminId: string, handling: string, malId: string, naa: n
   env.DB.prepare("INSERT INTO hendelseslogg (id, administrator_id, handling, mal_id, tid) VALUES (?, ?, ?, ?, ?)")
     .bind(crypto.randomUUID(), adminId, handling, malId, iso(naa));
 
-async function nyLenkeSetninger(env: Env, prosjektId: string, adminId: string, naa: number) {
+async function nyLenkeSetninger(env: Env, prosjektId: string, adminId: string, naa: number, maaneder: number) {
   const token = nyttToken();
   const id = crypto.randomUUID();
-  const lenke = { id, prefiks: token.slice(0, 6), opprettet: iso(naa), utloper: plussMaaneder(naa, LENKE_GYLDIG_MND) };
+  const lenke = { id, prefiks: token.slice(0, 6), opprettet: iso(naa), utloper: plussMaaneder(naa, maaneder) };
   const insert = env.DB.prepare(
     "INSERT INTO lenke (id, prosjekt_id, token_hash, token_prefiks, opprettet, utloper, trukket_tilbake, opprettet_av) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)",
   ).bind(id, prosjektId, await sha256Hex(token), lenke.prefiks, lenke.opprettet, lenke.utloper, adminId);
@@ -151,24 +170,38 @@ async function admin(req: Request, env: Env, sti: string[], naa: number): Promis
   if (sti.length === 1 && sti[0] === "prosjekter") {
     if (m === "GET") {
       const { results } = await env.DB.prepare(
-        "SELECT p.id, p.navn, p.status, p.min_gruppe, p.opprettet, " +
+        "SELECT p.id, p.navn, p.status, p.min_gruppe, p.offentlig, p.opprettet, " +
           "(SELECT COUNT(*) FROM reise r WHERE r.prosjekt_id = p.id AND r.skjult = 0) AS registrerte_reiser " +
           "FROM prosjekt p WHERE p.bedrift_id = ? ORDER BY p.opprettet DESC, p.navn",
-      ).bind(bedrift).all();
-      return json({ prosjekter: results });
+      ).bind(bedrift).all<{ id: string; navn: string; status: string; min_gruppe: number; offentlig: number; opprettet: string; registrerte_reiser: number }>();
+      return json({
+        prosjekter: results.map((p) => ({ ...p, offentlig: p.offentlig !== 0 })),
+      });
     }
     if (m === "POST") {
       let b: Record<string, unknown>;
       try { b = (await lesJson(req)) as Record<string, unknown>; } catch { return feil(400, "Ugyldig forespørsel."); }
       const navn = typeof b?.navn === "string" ? b.navn.trim() : "";
       if (navn.length < 2 || navn.length > 80) return feil(422, "Prosjektnavnet må ha 2–80 tegn.");
+      const utloper = lesUtloperMaaneder(b);
+      if (!utloper.ok) return feil(422, utloper.feil);
+      const offentlig = lesOffentlig(b);
+      if (!offentlig.ok) return feil(422, offentlig.feil);
       const id = crypto.randomUUID();
+      const n = await nyLenkeSetninger(env, id, a.adminId, naa, utloper.verdi);
       await env.DB.batch([
-        env.DB.prepare("INSERT INTO prosjekt (id, bedrift_id, navn, status, min_gruppe, opprettet_av, opprettet) VALUES (?, ?, ?, 'aktiv', 10, ?, ?)")
-          .bind(id, bedrift, navn, a.adminId, iso(naa)),
+        env.DB.prepare("INSERT INTO prosjekt (id, bedrift_id, navn, status, min_gruppe, offentlig, opprettet_av, opprettet) VALUES (?, ?, ?, 'aktiv', 10, ?, ?, ?)")
+          .bind(id, bedrift, navn, offentlig.verdi ? 1 : 0, a.adminId, iso(naa)),
+        n.insert,
         logg(env, a.adminId, "opprett_prosjekt", id, naa),
+        logg(env, a.adminId, "opprett_lenke", n.lenke.id, naa),
       ]);
-      return json({ prosjekt: { id, navn, status: "aktiv", min_gruppe: 10, opprettet: iso(naa), registrerte_reiser: 0 } }, 201);
+      // Tokenet finnes bare i dette svaret. Det lagres ikke og kan ikke hentes igjen.
+      return json({
+        prosjekt: { id, navn, status: "aktiv", min_gruppe: 10, offentlig: offentlig.verdi, opprettet: iso(naa), registrerte_reiser: 0 },
+        token: n.token,
+        lenke: { ...n.lenke, trukket_tilbake: null },
+      }, 201);
     }
   }
 
@@ -184,7 +217,14 @@ async function admin(req: Request, env: Env, sti: string[], naa: number): Promis
     }
     if (m === "POST") {
       if (p.status !== "aktiv") return feil(409, "Prosjektet er arkivert.");
-      const n = await nyLenkeSetninger(env, p.id, a.adminId, naa);
+      let b: Record<string, unknown> = {};
+      const raw = await req.text();
+      if (raw) {
+        try { b = JSON.parse(raw) as Record<string, unknown>; } catch { return feil(400, "Ugyldig forespørsel."); }
+      }
+      const utloper = lesUtloperMaaneder(b);
+      if (!utloper.ok) return feil(422, utloper.feil);
+      const n = await nyLenkeSetninger(env, p.id, a.adminId, naa, utloper.verdi);
       await env.DB.batch([n.insert, logg(env, a.adminId, "opprett_lenke", n.lenke.id, naa)]);
       // Tokenet finnes bare i dette svaret. Det lagres ikke og kan ikke hentes igjen.
       return json({ token: n.token, lenke: { ...n.lenke, trukket_tilbake: null } }, 201);
@@ -204,7 +244,21 @@ async function admin(req: Request, env: Env, sti: string[], naa: number): Promis
     }
     if (l.status !== "aktiv") return feil(409, "Prosjektet er arkivert.");
     // Forny: trekk tilbake gammel og lag ny i samme transaksjon (D1 batch).
-    const n = await nyLenkeSetninger(env, l.prosjekt_id, a.adminId, naa);
+    let b: Record<string, unknown> = {};
+    const raw = await req.text();
+    if (raw) {
+      try { b = JSON.parse(raw) as Record<string, unknown>; } catch { return feil(400, "Ugyldig forespørsel."); }
+    }
+    let maaneder: number;
+    if (b.utloper_maaneder !== undefined && b.utloper_maaneder !== null) {
+      const utloper = lesUtloperMaaneder(b);
+      if (!utloper.ok) return feil(422, utloper.feil);
+      maaneder = utloper.verdi;
+    } else {
+      const gammel = await env.DB.prepare("SELECT opprettet, utloper FROM lenke WHERE id = ?").bind(l.id).first<{ opprettet: string; utloper: string }>();
+      maaneder = maanederMellom(gammel?.opprettet, gammel?.utloper);
+    }
+    const n = await nyLenkeSetninger(env, l.prosjekt_id, a.adminId, naa, maaneder);
     await env.DB.batch([trekk, n.insert, logg(env, a.adminId, "forny_lenke", n.lenke.id, naa)]);
     return json({ token: n.token, lenke: { ...n.lenke, trukket_tilbake: null }, erstattet: l.id }, 201);
   }

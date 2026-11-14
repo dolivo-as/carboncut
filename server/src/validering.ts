@@ -71,3 +71,23 @@ export function validerReise(b: Record<string, unknown>, naa: number): Resultat 
   if (sum > MAKS_KM) return { ok: false, feil: `Samlet distanse kan ikke være over ${MAKS_KM} km.` };
   return { ok: true, verdi: { type: "reise", dato, etapper, turRetur: b.tur_retur } };
 }
+
+export const UTLØP_MAANEDER = [3, 6, 12] as const;
+export type UtloperMaaneder = (typeof UTLØP_MAANEDER)[number];
+export const UTLØP_FORVALGT: UtloperMaaneder = 12;
+
+/** Leser utloper_maaneder. Mangler feltet → 12. Ulovlig verdi → feiltekst. */
+export function lesUtloperMaaneder(b: Record<string, unknown>): { ok: true; verdi: UtloperMaaneder } | { ok: false; feil: string } {
+  if (b.utloper_maaneder === undefined || b.utloper_maaneder === null) return { ok: true, verdi: UTLØP_FORVALGT };
+  if (typeof b.utloper_maaneder === "number" && (UTLØP_MAANEDER as readonly number[]).includes(b.utloper_maaneder)) {
+    return { ok: true, verdi: b.utloper_maaneder as UtloperMaaneder };
+  }
+  return { ok: false, feil: "Utløp må være 3, 6 eller 12 måneder." };
+}
+
+/** Leser offentlig. Mangler feltet → true (dashbordet er offentlig). Ulovlig verdi → feiltekst. */
+export function lesOffentlig(b: Record<string, unknown>): { ok: true; verdi: boolean } | { ok: false; feil: string } {
+  if (b.offentlig === undefined || b.offentlig === null) return { ok: true, verdi: true };
+  if (typeof b.offentlig === "boolean") return { ok: true, verdi: b.offentlig };
+  return { ok: false, feil: "offentlig må være true eller false." };
+}

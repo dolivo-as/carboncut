@@ -34,11 +34,11 @@ Laget må byttes ut med Clerk (runde 2) før serveren kobles til en ekte konto. 
 
 | Metode og sti | Tilgang | Hva |
 |---|---|---|
-| `POST /api/lenke` `{token}` | offentlig | Sjekker lenken og gir prosjektnavnet. Ukjent, utløpt og trukket lenke gir identisk 404. Samme IP-teller som registrering |
+| `POST /api/lenke` `{token}` | offentlig | Sjekker lenken og gir prosjektets id, navn og om dashbordet er offentlig. Ukjent, utløpt og trukket lenke gir identisk 404. Samme IP-teller som registrering |
 | `POST /api/reiser` | offentlig (token i body) | Registrerer én jobbreise. Serveren regner CO₂ med `calc` |
-| `GET /api/dashbord/:prosjektId` | offentlig | Bare summer. Under 10 registrerte reiser: ingen tall |
-| `GET/POST /api/admin/prosjekter` | admin | Lister eller oppretter prosjekt |
-| `GET/POST /api/admin/prosjekter/:id/lenker` | admin | Lister lenker (bare prefiks) eller lager ny. Tokenet vises én gang |
+| `GET /api/dashbord/:prosjektId` | offentlig | Bare summer. Under 10 registrerte reiser: ingen tall. Skjult dashbord gir samme 404 som ukjent prosjekt |
+| `GET/POST /api/admin/prosjekter` | admin | Lister eller oppretter prosjekt. POST tar `navn`, valgfritt `utloper_maaneder` (3, 6 eller 12, forvalgt 12) og `offentlig` (boolean, forvalgt true), og lager første delelenke i samme svar |
+| `GET/POST /api/admin/prosjekter/:id/lenker` | admin | Lister lenker (bare prefiks) eller lager ny (valgfritt `utloper_maaneder`). Tokenet vises én gang |
 | `POST /api/admin/lenker/:id/trekk-tilbake` | admin | Trekker lenken tilbake, gjelder straks |
 | `POST /api/admin/lenker/:id/forny` | admin | Trekker tilbake og lager ny i én D1-batch (transaksjon) |
 | `POST /api/admin/reiser/:id/skjul` | admin | Skjuler én reise (logges). Har ikke grensesnitt ennå |
@@ -66,6 +66,8 @@ eller `{ …, type: "hjemmekontor", pendling_km, tur_retur }`. Tall fra klienten
 4. **`hendelseslogg.handling`** har også `opprett_prosjekt`.
 5. **Hjemmekontor** sendes som `transportmiddel = 'home_office'`, `distanse_km` = unngått km, utslipp 0 (som `calculateHomeOffice`).
 6. **«Caches»:** bare `Cache-Control: public, max-age=300` på dashbordet, ikke Cache API eller KV.
+7. **`prosjekt.offentlig` (migrering 0002):** 1 = åpent dashbord, 0 = skjult. Skjult gir samme 404 som ukjent id. Forvalgt 1.
+8. **Valgbart utløp:** lenker kan vare 3, 6 eller 12 måneder (forvalgt 12). Andre verdier avvises med 422.
 
 ## Avhengigheter og npm audit (14.11.2026)
 
