@@ -13,7 +13,7 @@ npm run db:migrate                    # lokal D1 i .wrangler/ (gitignored)
 npm run db:seed                       # fiktiv bedrift, admin og prosjekt
 npm run db:demo                       # valgfritt: 24 fiktive reiser, så dashbordet har noe å vise
 npm run dev                           # http://127.0.0.1:8787
-npm test                              # vitest i workerd (@cloudflare/vitest-pool-workers), D1 i minnet
+npm test                              # vitest i workerd (@cloudflare/vitest-plugin), D1 i minnet
 npm run typecheck
 ```
 
@@ -34,7 +34,7 @@ Laget må byttes ut med Clerk (runde 2) før serveren kobles til en ekte konto. 
 
 | Metode og sti | Tilgang | Hva |
 |---|---|---|
-| `POST /api/lenke` `{token}` | offentlig | Sjekker lenken og gir prosjektnavnet. Ukjent, utløpt og trukket lenke gir identisk 404 |
+| `POST /api/lenke` `{token}` | offentlig | Sjekker lenken og gir prosjektnavnet. Ukjent, utløpt og trukket lenke gir identisk 404. Samme IP-teller som registrering |
 | `POST /api/reiser` | offentlig (token i body) | Registrerer én jobbreise. Serveren regner CO₂ med `calc` |
 | `GET /api/dashbord/:prosjektId` | offentlig | Bare summer. Under 10 registrerte reiser: ingen tall |
 | `GET/POST /api/admin/prosjekter` | admin | Lister eller oppretter prosjekt |
@@ -52,10 +52,10 @@ eller `{ …, type: "hjemmekontor", pendling_km, tur_retur }`. Tall fra klienten
 - **Token:** 32 byte fra `crypto.getRandomValues`, base64url. Bare SHA-256 (hex) og de 6 første tegnene lagres.
 - **Samme 404** for ukjent, utløpt, trukket og misdannet token, og for arkivert prosjekt. Status, body og header er like.
 - **Bare jobb:** `formaal` må være `"jobb"`. Det sjekkes før tokenoppslaget, og D1 har i tillegg `CHECK (formaal = 'jobb')`.
-- **Ratebegrensning:** 10 per time per IP-HMAC (teller alle forsøk, også ugyldige token) og 500 per døgn per lenke. Ved brudd svarer serveren 429.
+- **Ratebegrensning:** 10 per time per IP-HMAC, felles for `POST /api/reiser` og `POST /api/lenke` og for alle forsøk (også ugyldige token), og 500 per døgn per lenke. Ved brudd svarer serveren 429. IPv4 telles per adresse og IPv6 per /64 (normalisert prefiks, se `ipGrunnlag`). IPv4-tilordnet IPv6 telles som IPv4. Uten `cf-connecting-ip` deler alle én «ukjent»-teller.
 - **IP:** lagres aldri. Nøkkelen er `HMAC-SHA256(IP, døgnsalt)`, der døgnsaltet er 32 tilfeldige byte per UTC-døgn i tabellen `dognsalt`. Salt fra tidligere døgn og tellere eldre enn 24 t slettes (cron hver time og tilfeldig ved registrering).
 - **Rimelighetssjekk:** 0,1–2 000 km per strekning og samlet, dato ikke fram i tid og ikke over 31 dager tilbake, bare transportmidler med dokumentert faktor. Honningfelt `nettside` gir 201 uten lagring.
-- **CORS:** bare `https://carboncut.no` (`wrangler.toml`), og localhost bare via `DEV_ORIGINS` i `.dev.vars`. Andre opphav får 403 uten CORS-hoder.
+- **CORS:** bare `https://carboncut.no` (`wrangler.toml`), og localhost bare via `DEV_ORIGINS` i `.dev.vars`. Andre opphav får 403 uten CORS-hoder. Kall **uten** `Origin` godtas (Tech Lead/CTO 14.11): admin bruker Bearer-nøkkel og ikke cookies, så CSRF er ikke aktuelt, og de offentlige rutene er ratebegrenset.
 - **Dashbord:** se `src/dashbord.ts`. Celler under 5 går til «annet». Får «annet» 1–4, flyttes også minste synlige celle dit (sekundær undertrykking), slik at små tall ikke kan regnes ut ved å trekke fra. Fordelingen per transportmiddel summeres bare fra publiserte celler. Det finnes ingen dagsoppløsning, enkeltreiser eller ID-er, og teksten sier «registrerte reiser», aldri personer.
 
 ## Avvik fra v0.2 (til Tech Lead)
@@ -66,4 +66,24 @@ eller `{ …, type: "hjemmekontor", pendling_km, tur_retur }`. Tall fra klienten
 4. **`hendelseslogg.handling`** har også `opprett_prosjekt`.
 5. **Hjemmekontor** sendes som `transportmiddel = 'home_office'`, `distanse_km` = unngått km, utslipp 0 (som `calculateHomeOffice`).
 6. **«Caches»:** bare `Cache-Control: public, max-age=300` på dashbordet, ikke Cache API eller KV.
-7. **`compatibility_date = 2026-08-01`:** test-runtime (workerd i vitest-pool-workers 0.23) støtter ikke nyere dato.
+
+## Avhengigheter og npm audit (14.11.2026)
+
+**Utgangspunkt (`3a60b9b`):** `npm audit` i `server/` ga 6 «high», 0 «critical». Alle kom fra test-pakken `@cloudflare/vitest-pool-workers@0.23.0` (utfaset, omdøpt til `@cloudflare/vitest-plugin`), som tok med seg egne, eldre kopier av wrangler og miniflare:
+
+| Pakke (sårbar versjon) | Kjede | Råd (fra audit) | Bare dev? |
+|---|---|---|---|
+| `@cloudflare/vitest-pool-workers` 0.23.0 | direkte devDependency | arver fra miniflare, wrangler, zod | ja |
+| `wrangler` 4.124.0 (egen kopi; vår direkte wrangler 4.162.0 var ikke berørt) | vitest-pool-workers → wrangler | arver fra miniflare | ja |
+| `miniflare` 5.20260815.0-alpha | vitest-pool-workers → miniflare (og → wrangler 4.124.0 → miniflare) | arver fra sharp og undici | ja |
+| `undici` 7.29.0 | … → miniflare → undici | 18 råd, blant annet GHSA-2m5v-pch6-74hx og GHSA-4w7w-5xrc-9h26 (rettet i ≥7.30.1) | ja |
+| `sharp` 0.35.2 | … → miniflare → sharp | GHSA-rgj7-g3m4-5g8c (libheif) og GHSA-wq5f-xc86-pv6w (librsvg) | ja |
+| `zod` 4.4.3 | vitest-pool-workers → zod | GHSA-mrhx-c7xc-m3w5 (minnebruk ved store samlinger) | ja |
+
+Audit foreslo `@cloudflare/vitest-pool-workers@0.12.21` (major-nedgradering). Det ble ikke gjort.
+
+**Tiltak:** byttet til etterfølgeren `@cloudflare/vitest-plugin@1.8.2`. Den bruker wrangler 4.162.0, miniflare 5.20261113.0-beta (med undici 7.30.1 og sharp 0.35.5) og zod 4.6.6. Etter byttet gir `npm audit`: **0 sårbarheter**. Alle tester består, og `compatibility_date` kunne settes tilbake til 2026-11-01.
+
+**Worker-bundelen:** `npx wrangler deploy --dry-run --outdir dist-sjekk` (ingen innlogging, ingen utrulling) gir én fil der kildekartet bare inneholder `calc/src/calc.ts`, `calc/src/factors.ts` og `server/src/*.ts`. **Ingen npm-pakker havner i Worker-bundelen**, heller ikke undici, sharp, zod, miniflare eller wrangler. Bindingene i dry-run er bare `DB` og `ALLOWED_ORIGINS`, så `.dev.vars` er ikke med. CI (`.github/workflows/ci.yml`) bygger bundelen på samme måte og sjekker at testnøkkelen ikke er med.
+
+Merk: npm 11 kjører ikke installasjonsskript uten godkjenning (`workerd`, `esbuild`). Lokalt virket alt likevel. CI bruker Node 22 med npm 10, som kjører dem.

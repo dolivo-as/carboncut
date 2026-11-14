@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler", "lib": ["ES2022"],
     "strict": true, "noEmit": true, "skipLibCheck": true,
-    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers/types"]
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-plugin/types"]
   },
   "include": ["src", "test", "vitest.config.ts", "../calc/src/calc.ts", "../calc/src/factors.ts"]
 }

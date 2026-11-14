@@ -3,6 +3,7 @@ import { Button } from "../components/Button";
 import { PurposeBadge, ResultCard } from "../components/ResultCard";
 import { fmtDate, fmtKg, fmtKm } from "../format";
 import { PURPOSE_LABELS, type Purpose } from "../flowLogic";
+import { deleteLabel } from "../tripLabel";
 import { groupTrips, purposeOf, sumSavingsKg, type StoredTrip } from "../storage";
 
 export function Overview({
@@ -83,7 +84,7 @@ export function Overview({
                             </div>
                           </details>
                         </div>
-                        <Button variant="danger" className="small" onClick={() => onDelete(t.id)}>
+                        <Button variant="danger" className="small" aria-label={deleteLabel(t)} onClick={() => onDelete(t.id)}>
                           Slett
                         </Button>
                       </li>
@@ -98,7 +99,7 @@ export function Overview({
           </Button>
         </>
       )}
-      <p className="page-footer">Testversjon. Ingen innlogging, ingen server, ingen sporing. Data lagres bare i din nettleser.</p>
+      <p className="page-footer">{note ? "Testversjon. Jobbturer du sender via lenken lagres hos prosjektet uten navn. Alt annet lagres bare i din nettleser." : "Testversjon. Ingen innlogging, ingen server, ingen sporing. Data lagres bare i din nettleser."}</p>
     </section>
   );
 }

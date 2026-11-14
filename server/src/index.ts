@@ -6,7 +6,7 @@ import { byggDashbord, type Rad } from "./dashbord";
 import type { Env } from "./env";
 import { feil, json, lenkeUgyldig, lesJson } from "./http";
 import { nyttToken, sha256Hex, TOKEN_RE } from "./krypto";
-import { GRENSE_IP_PER_TIME, GRENSE_LENKE_PER_DOGN, ipNokkel, rydd, tell } from "./misbruk";
+import { GRENSE_LENKE_PER_DOGN, rydd, tell, tellIp } from "./misbruk";
 import { validerReise } from "./validering";
 
 export type { Env };
@@ -34,7 +34,11 @@ async function finnGyldigLenke(env: Env, token: unknown, naa: number): Promise<L
 
 // ---------- Offentlig ----------
 
+const forMange = () => json({ feil: "For mange forsøk. Prøv igjen om en time." }, 429, { "retry-after": "3600" });
+
 async function lenkeInfo(req: Request, env: Env, naa: number): Promise<Response> {
+  // Samme IP-teller som registrering (Tech Lead 14.11): hindrer at oppslaget brukes til å belaste serveren.
+  if (!(await tellIp(env.DB, req.headers.get("cf-connecting-ip"), naa))) return forMange();
   let body: Record<string, unknown>;
   try { body = (await lesJson(req)) as Record<string, unknown>; } catch { return lenkeUgyldig(); }
   const l = await finnGyldigLenke(env, body?.token, naa);
@@ -43,10 +47,7 @@ async function lenkeInfo(req: Request, env: Env, naa: number): Promise<Response>
 }
 
 async function registrer(req: Request, env: Env, naa: number): Promise<Response> {
-  const ip = req.headers.get("cf-connecting-ip") ?? "ukjent";
-  if (!(await tell(env.DB, await ipNokkel(env.DB, ip, naa), 3600, GRENSE_IP_PER_TIME, naa))) {
-    return json({ feil: "For mange registreringer. Prøv igjen om en time." }, 429, { "retry-after": "3600" });
-  }
+  if (!(await tellIp(env.DB, req.headers.get("cf-connecting-ip"), naa))) return forMange();
   let b: Record<string, unknown>;
   try {
     const v = await lesJson(req);

@@ -1,0 +1,71 @@
+# Bare tester. Publiserer ingenting, har ingen hemmeligheter og ingen Cloudflare-innlogging.
+# Utrulling til GitHub Pages ligger uendret i pages.yml (bare push til main).
+name: CI
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calc:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: calc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: calc/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    env:
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      # Kjører i workerd med D1 i minnet (vitest-pool-workers). Ingen konto, ingen nett mot Cloudflare.
+      - run: npm test
+      # Bygger Worker-bundelen uten å rulle ut, og sjekker at testnøkkel og .dev.vars ikke er med.
+      - run: npx wrangler deploy --dry-run --outdir dist-sjekk
+      - run: "! grep -rq 'test-nokkel-kun-for-tester' dist-sjekk"
