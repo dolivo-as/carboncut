@@ -43,7 +43,9 @@ Laget må byttes ut med Clerk (runde 2) før serveren kobles til en ekte konto. 
 | `POST /api/admin/lenker/:id/forny` | admin | Trekker tilbake og lager ny i én D1-batch (transaksjon) |
 | `POST /api/admin/prosjekter/:id/arkiver` | admin | Arkiverer prosjektet og trekker tilbake alle aktive lenker for godt i samme batch (begge logges). Lenkene gir da samme 404 som ukjent lenke, ny lenke og fornying gir 409. Ingenting slettes. Idempotent |
 | `POST /api/admin/prosjekter/:id/gjenopprett` | admin | Setter prosjektet aktivt igjen (logges). Gamle lenker forblir trukket tilbake; admin lager ny lenke. Idempotent |
-| `POST /api/admin/reiser/:id/skjul` | admin | Skjuler én reise (logges). Har ikke grensesnitt ennå |
+| `GET /api/admin/prosjekter/:id/reiser` | admin | De 200 nyeste reisene (dato, transportmiddel, km, tur-retur, kg, skjult) pluss `totalt` og `skjulte`. Ingen lenke-id, tokenprefiks eller innsendingstidspunkt |
+| `POST /api/admin/reiser/:id/skjul` | admin | Skjuler én reise (logges). Skjulte reiser telles ikke i dashbord eller summer. Idempotent |
+| `POST /api/admin/reiser/:id/vis` | admin | Viser en skjult reise igjen (logges som `vis_reise`). Idempotent |
 
 Body for `POST /api/reiser`:
 `{ token, formaal: "jobb", dato: "YYYY-MM-DD", type: "reise", etapper: [{ transportmiddel, distanse_km }], tur_retur, nettside: "" }`
@@ -71,6 +73,7 @@ eller `{ …, type: "hjemmekontor", pendling_km, tur_retur }`. Tall fra klienten
 7. **`prosjekt.offentlig` (migrering 0002):** 1 = åpent dashbord, 0 = skjult. Skjult gir samme 404 som ukjent id. Forvalgt 1.
 8. **Valgbart utløp:** lenker kan vare 3, 6 eller 12 måneder (forvalgt 12). Andre verdier avvises med 422.
 9. **Arkivering (migrering 0003, ikke med i 16.11):** `prosjekt.status` (aktiv|arkivert) fantes fra 0001. 0003 utvider bare `hendelseslogg.handling` med `arkiver_prosjekt` og `gjenopprett_prosjekt` (tabellen bygges på nytt, radene kopieres). Arkivering trekker tilbake alle aktive lenker for godt (samme mekanisme og logg som «Trekk tilbake»), og gjenoppretting gjør dem ikke gyldige igjen; admin lager ny lenke og QR-kode (CTO 14.11). Reiser og lenkerader slettes ikke. Offentlig dashbord for et arkivert prosjekt vises fortsatt, med `status: "arkivert"`; skjult dashbord og grensen på 10 reiser gjelder som før (CTO 14.11). Før 0003 går ut, tester Tester den med `migrations apply --local` på en database med fiktive rader.
+10. **Skjul reiser (migrering 0004, etter 16.11):** `reise.skjult` og `skjul_reise` fantes fra 0001. 0004 legger bare til `vis_reise` i CHECK på `hendelseslogg.handling` (bygges på nytt som i 0003). Admin-lista over reiser viser bare dag, transportmiddel, km, tur-retur og kg, og er begrenset til de 200 nyeste. Dashbordet caches i 5 minutter, så en skjult reise kan vises så lenge.
 
 ## Avhengigheter og npm audit (14.11.2026)
 

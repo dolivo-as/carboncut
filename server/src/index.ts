@@ -11,6 +11,8 @@ import { lesOffentlig, lesUtloperMaaneder, validerReise } from "./validering";
 
 export type { Env };
 
+/** Antall reiser admin-skjermen henter (nyeste først). */
+const MAKS_REISER_ADMIN = 200;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const iso = (ms: number) => new Date(ms).toISOString();
 function plussMaaneder(ms: number, n: number): string {
@@ -297,13 +299,44 @@ async function admin(req: Request, env: Env, sti: string[], naa: number): Promis
     return json({ token: n.token, lenke: { ...n.lenke, trukket_tilbake: null }, erstattet: l.id }, 201);
   }
 
-  // /api/admin/reiser/:id/skjul
-  if (sti.length === 3 && sti[0] === "reiser" && sti[2] === "skjul" && m === "POST") {
-    const r = await env.DB.prepare("SELECT r.id FROM reise r JOIN prosjekt p ON p.id = r.prosjekt_id WHERE r.id = ? AND p.bedrift_id = ?")
-      .bind(sti[1], bedrift).first<{ id: string }>();
+  // /api/admin/prosjekter/:id/reiser – reiser for skjermbildet «Skjul reiser».
+  // Bare feltene som trengs for å kjenne igjen en feilregistrering: dag, transportmiddel, km, tur-retur og kg.
+  // Ingen lenke-id, tokenprefiks eller tidspunkt for innsending (kan knyttes til en person). Nyeste 200.
+  if (sti.length === 3 && sti[0] === "prosjekter" && sti[2] === "reiser" && m === "GET") {
+    if (!UUID_RE.test(sti[1])) return feil(404, "Fant ikke prosjektet.");
+    const p = await env.DB.prepare("SELECT id FROM prosjekt WHERE id = ? AND bedrift_id = ?").bind(sti[1], bedrift).first<{ id: string }>();
+    if (!p) return feil(404, "Fant ikke prosjektet.");
+    const [liste, tall] = await env.DB.batch<Record<string, unknown>>([
+      env.DB.prepare(
+        "SELECT id, dato, transportmiddel, distanse_km, tur_retur, utslipp_kg, referanse_kg, skjult FROM reise " +
+          "WHERE prosjekt_id = ? ORDER BY dato DESC, opprettet DESC LIMIT ?",
+      ).bind(p.id, MAKS_REISER_ADMIN),
+      env.DB.prepare("SELECT COUNT(*) AS totalt, COALESCE(SUM(skjult), 0) AS skjulte FROM reise WHERE prosjekt_id = ?").bind(p.id),
+    ]);
+    const t = tall.results[0] as { totalt: number; skjulte: number };
+    return json({
+      reiser: liste.results.map((r) => ({ ...r, tur_retur: r.tur_retur === 1, skjult: r.skjult === 1 })),
+      totalt: t.totalt,
+      skjulte: t.skjulte,
+      maks: MAKS_REISER_ADMIN,
+    });
+  }
+
+  // /api/admin/reiser/:id/(skjul|vis) – skjulte reiser telles ikke i dashbord eller summer. Ingenting slettes.
+  if (sti.length === 3 && sti[0] === "reiser" && (sti[2] === "skjul" || sti[2] === "vis") && m === "POST") {
+    if (!UUID_RE.test(sti[1])) return feil(404, "Fant ikke reisen.");
+    const r = await env.DB.prepare("SELECT r.id, r.skjult FROM reise r JOIN prosjekt p ON p.id = r.prosjekt_id WHERE r.id = ? AND p.bedrift_id = ?")
+      .bind(sti[1], bedrift).first<{ id: string; skjult: number }>();
     if (!r) return feil(404, "Fant ikke reisen.");
-    await env.DB.batch([env.DB.prepare("UPDATE reise SET skjult = 1 WHERE id = ?").bind(r.id), logg(env, a.adminId, "skjul_reise", r.id, naa)]);
-    return json({ skjult: true });
+    const skjul = sti[2] === "skjul";
+    // Idempotent: samme tilstand to ganger gir 200 og logges ikke på nytt.
+    if ((r.skjult === 1) !== skjul) {
+      await env.DB.batch([
+        env.DB.prepare("UPDATE reise SET skjult = ? WHERE id = ?").bind(skjul ? 1 : 0, r.id),
+        logg(env, a.adminId, skjul ? "skjul_reise" : "vis_reise", r.id, naa),
+      ]);
+    }
+    return json({ skjult: skjul });
   }
   return feil(404, "Fant ikke ressursen.");
 }

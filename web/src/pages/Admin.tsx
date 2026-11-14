@@ -5,7 +5,8 @@ import { Field } from "../components/Field";
 import { Qr } from "../components/Qr";
 import { SegmentedChoice } from "../components/SegmentedChoice";
 import { UTLØP_FORVALGT, type UtloperMaaneder } from "../flowLogic";
-import { fmtDate } from "../format";
+import { MODE_LABELS, type TransportMode } from "@calc/factors";
+import { fmtDate, fmtKg, fmtKm } from "../format";
 import { reiserTekst } from "../dashbordTyper";
 import { dashbordUrl, lenkeUrl } from "../route";
 
@@ -127,6 +128,62 @@ export function trengerForny(status: string, lenker: Lenke[], naa = new Date().t
   return [...lenker].sort((a, b) => b.opprettet.localeCompare(a.opprettet))[0];
 }
 
+export interface AdminReise { id: string; dato: string; transportmiddel: string; distanse_km: number; tur_retur: boolean; utslipp_kg: number; referanse_kg: number; skjult: boolean }
+export interface ReiseSvar { reiser: AdminReise[]; totalt: number; skjulte: number; maks: number }
+
+export const REISE_TEKST = {
+  intro: "Skjul reiser som er registrert feil. Skjulte reiser telles ikke i dashbordet eller i summene, men de slettes ikke, og du kan vise dem igjen.",
+  skjult: "Reisen er skjult og telles ikke lenger med.",
+  vist: "Reisen vises igjen og telles med.",
+} as const;
+
+const modeNavn = (k: string) => MODE_LABELS[k as TransportMode]?.nb ?? k;
+
+/** Én linje som beskriver reisen uten persondata: dag, transportmiddel, km og tur-retur. */
+export function reiseLinje(r: AdminReise): string {
+  const km = r.transportmiddel === "home_office" ? `${fmtKm(r.distanse_km)} km unngått` : `${fmtKm(r.distanse_km)} km`;
+  return [fmtDate(r.dato), modeNavn(r.transportmiddel), km, r.tur_retur ? "tur-retur" : null].filter(Boolean).join(" · ");
+}
+
+/** Skjermbildet «Registrerte reiser» for valgt prosjekt (punkt 2 etter 16.11). */
+export function ReiseListe({ svar, status, onSkjul, onVis }: {
+  svar: ReiseSvar | null;
+  status: string;
+  onSkjul: (id: string) => void;
+  onVis: (id: string) => void;
+}) {
+  return (
+    <>
+      <p className="small muted">{REISE_TEKST.intro}</p>
+      <div aria-live="polite">{status && <p className="notice" role="status">{status}</p>}</div>
+      {svar === null ? <p className="muted">Henter …</p> : svar.reiser.length === 0 ? <p className="muted">Ingen registrerte reiser ennå.</p> : (
+        <>
+          <p className="small">
+            {reiserTekst(svar.totalt)}{svar.skjulte > 0 ? `, ${svar.skjulte} skjult` : ""}.
+            {svar.totalt > svar.reiser.length ? ` Viser de ${svar.reiser.length} nyeste.` : ""}
+          </p>
+          <ul className="plist">
+            {svar.reiser.map((r) => (
+              <li key={r.id} className="lrow">
+                <div>
+                  <span className="t">{reiseLinje(r)}</span>
+                  {r.skjult && <> <span className="tag none">Skjult</span></>}
+                  <p className="small muted" style={{ margin: "4px 0 0" }}>Estimert spart {fmtKg(r.referanse_kg - r.utslipp_kg)} kg CO₂e</p>
+                </div>
+                <div className="row-actions">
+                  {r.skjult
+                    ? <Button variant="secondary" onClick={() => onVis(r.id)}>Vis igjen</Button>
+                    : <Button variant="secondary" onClick={() => onSkjul(r.id)}>Skjul</Button>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
 export function Admin() {
   const [key, setKey] = useState(() => sessionStorage.getItem(KEY) ?? "");
   const [keyInput, setKeyInput] = useState("");
@@ -142,6 +199,8 @@ export function Admin() {
   const [bekreft, setBekreft] = useState<string | null>(null);
   const [bekreftArkiv, setBekreftArkiv] = useState(false);
   const [arkivStatus, setArkivStatus] = useState("");
+  const [reiser, setReiser] = useState<ReiseSvar | null>(null);
+  const [reiseStatus, setReiseStatus] = useState("");
   const [fokus, setFokus] = useState<null | "kort" | "forny">(null);
   const kortRef = useRef<HTMLElement>(null);
   const fornyRef = useRef<HTMLButtonElement>(null);
@@ -167,6 +226,22 @@ export function Admin() {
     if (r.ok) setLenker(r.data.lenker); else setFeil(r.feil);
   }, [key]);
   useEffect(() => { if (valgt) void hentLenker(valgt); }, [valgt, hentLenker]);
+
+  const hentReiser = useCallback(async (id: string) => {
+    const r = await api<ReiseSvar>(`/api/admin/prosjekter/${id}/reiser`, { adminKey: key });
+    if (r.ok) setReiser(r.data); else setFeil(r.feil);
+  }, [key]);
+  useEffect(() => { setReiser(null); setReiseStatus(""); if (valgt) void hentReiser(valgt); }, [valgt, hentReiser]);
+
+  async function settSkjult(id: string, skjul: boolean) {
+    setReiseStatus("");
+    const r = await api(`/api/admin/reiser/${id}/${skjul ? "skjul" : "vis"}`, { method: "POST", adminKey: key });
+    if (!r.ok) { setFeil(r.feil); return; }
+    setFeil(null);
+    if (valgt) await hentReiser(valgt);
+    await hent();
+    setReiseStatus(skjul ? REISE_TEKST.skjult : REISE_TEKST.vist);
+  }
 
   async function opprettProsjekt() {
     const r = await api<{ prosjekt: Prosjekt; token: string; lenke: Lenke }>("/api/admin/prosjekter", {
@@ -368,6 +443,13 @@ export function Admin() {
             onAvbryt={() => setBekreftArkiv(false)}
             onGjenopprett={() => void settArkiv(prosjekt.id, "gjenopprett")}
           />
+        </section>
+      )}
+
+      {prosjekt && (
+        <section className="card" aria-labelledby="r-tittel">
+          <h2 id="r-tittel">Registrerte reiser</h2>
+          <ReiseListe svar={reiser} status={reiseStatus} onSkjul={(id) => void settSkjult(id, true)} onVis={(id) => void settSkjult(id, false)} />
         </section>
       )}
     </section>
