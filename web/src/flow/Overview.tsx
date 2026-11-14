@@ -11,7 +11,9 @@ export function Overview({
   onDelete,
   onClear,
   onMark,
+  note,
 }: {
+  note?: string;
   trips: StoredTrip[];
   onStart: () => void;
   onDelete: (id: string) => void;
@@ -24,7 +26,7 @@ export function Overview({
   return (
     <section className="narrow">
       <h1 id="oversikt-tittel" tabIndex={-1}>Dine turer</h1>
-      <p className="muted">Turer i denne nettleseren, merket som jobb eller privat. Ingenting sendes noe sted.</p>
+      <p className="muted">{note ?? "Turer i denne nettleseren, merket som jobb eller privat. Ingenting sendes noe sted."}</p>
       <Button onClick={onStart} style={{ margin: "8px 0 18px" }}>Registrer tur</Button>
 
       {trips.length === 0 ? (
@@ -57,6 +59,7 @@ export function Overview({
                               ? `Hjemmekontor: pendleavstand ${fmtKm(t.oneWayCommuteKm ?? 0)} km ${t.avoided === "return" ? "tur-retur" : "én vei"}`
                               : `${(t.segments ?? []).map((s) => `${MODE_LABELS[s.mode]?.nb ?? s.mode} ${fmtKm(s.distanceKm)} km`).join(" + ")}${t.returnTrip ? " (tur-retur)" : ""}`}
                           </div>
+                          {t.sentTo ? <div className="small muted">Sendt til {t.sentTo}</div> : null}
                           <div className={t.result.savingsKg < 0 ? "neg" : "pos"}>
                             {t.result.savingsKg < 0 ? "Mer enn referansen: " : "Besparelse: "}
                             {fmtKg(t.result.savingsKg)} kg CO₂e

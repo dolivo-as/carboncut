@@ -8,6 +8,7 @@ Enkel statisk testside som estimerer utslipp (kg CO₂e) fra reiser, sammenligne
 
 - `calc/` – beregningsmodulen (TypeScript): utslippsfaktorer (`src/factors.ts`), beregning (`src/calc.ts`) og tester. Faktorlisten ligger i `utslippsfaktorer_YTM.csv` / `.md` (v2, godkjent av CTO).
 - `web/` – Vite + React + TypeScript + Tailwind. Importerer `calc/src` direkte (ingen kopi av logikken).
+- `server/` – API for trinn 2 (Cloudflare Worker + D1), **bare lokalt** inntil eieren har godkjent konto. Se `server/README.md`.
 - `.github/workflows/pages.yml` – bygger og publiserer `web/dist` til GitHub Pages (kun filen; aktiveres først når den ligger i repoet og Pages er slått på).
 
 ## Kjøre lokalt
@@ -43,6 +44,8 @@ npm run preview      # forhåndsvis bygget (http://localhost:4173)
 ## Personvern
 
 Ingen innlogging, ingen backend, ingen eksterne kall og ingen analytics. Turer lagres kun i nettleserens `localStorage` og kan slettes i siden.
+
+Trinn 2 (gren `trinn2-server`, ikke publisert): via en delelenke fra arbeidsgiver kan jobbturer sendes til et prosjekt, uten navn og beskrivelse. Private turer sendes aldri. Se `server/README.md`.
 
 ## Kilder
 

@@ -4,6 +4,11 @@ import { Method } from "./Method";
 import { IconBook, IconLeaf, IconList, IconMoon, IconSun } from "./components/Icons";
 import { Overview } from "./flow/Overview";
 import { RegisterTrip } from "./flow/RegisterTrip";
+import { api } from "./api";
+import { Admin } from "./pages/Admin";
+import { Dashbord } from "./pages/Dashbord";
+import { parseRoute, type Route } from "./route";
+import { toServerPayload } from "./serverPayload";
 import type { Purpose } from "./flowLogic";
 import { PURPOSE_LABELS } from "./flowLogic";
 import { loadTrips, markPurpose, restoreTrip, saveTrips, type StoredTrip } from "./storage";
@@ -20,7 +25,11 @@ interface Toast {
   restoreId?: string;
 }
 
+type LinkState = { status: "laster" } | { status: "ok"; navn: string } | { status: "ugyldig" } | { status: "feil"; feil: string };
+
 export default function App() {
+  const [route, setRoute] = useState<Route>(() => parseRoute(typeof window !== "undefined" ? window.location.hash : ""));
+  const [link, setLink] = useState<LinkState | null>(null);
   const [view, setView] = useState<View>("overview");
   const [trips, setTrips] = useState<StoredTrip[]>(() => loadTrips());
   const [theme, setTheme] = useState<Theme>(() => (typeof document !== "undefined" && document.documentElement.dataset.theme === "dark" ? "dark" : readTheme()));
@@ -31,6 +40,24 @@ export default function App() {
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const toastSeq = useRef(0);
   useEffect(() => { saveTrips(trips); }, [trips]);
+  useEffect(() => {
+    const onHash = () => setRoute(parseRoute(window.location.hash));
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  const linkToken = route.name === "lenke" ? route.token : null;
+  useEffect(() => {
+    if (!linkToken) { setLink(null); return; }
+    let active = true;
+    setLink({ status: "laster" });
+    api<{ prosjekt: { navn: string } }>("/api/lenke", { method: "POST", body: JSON.stringify({ token: linkToken }) }).then((r) => {
+      if (!active) return;
+      if (r.ok) { setLink({ status: "ok", navn: r.data.prosjekt.navn }); setView("register"); }
+      else setLink(r.status === 404 ? { status: "ugyldig" } : { status: "feil", feil: r.feil });
+    });
+    return () => { active = false; };
+  }, [linkToken]);
+  const linkProject = link?.status === "ok" ? link.navn : undefined;
   useEffect(() => { applyTheme(theme); }, [theme]);
   useEffect(() => {
     if (!pendingFocusId) return;
@@ -66,14 +93,32 @@ export default function App() {
     setToast({ ...partial, id: toastSeq.current });
   }
 
-  function saved(trip: StoredTrip) {
+  async function saved(trip: StoredTrip, honeypot: string): Promise<string | null> {
+    let message = `Tur lagret som ${PURPOSE_LABELS[trip.purpose ?? "unspecified"]}.`;
+    if (linkToken && linkProject) {
+      // Bare jobbturer har en payload. Private turer forlater aldri nettleseren.
+      const payload = toServerPayload(trip, linkToken, honeypot);
+      if (payload) {
+        const r = await api("/api/reiser", { method: "POST", body: JSON.stringify(payload) });
+        if (!r.ok) {
+          return r.status === 404
+            ? "Lenken er ikke gyldig lenger. Turen er ikke sendt og ikke lagret. Be om en ny lenke."
+            : `Turen er ikke sendt: ${r.feil}`;
+        }
+        trip = { ...trip, sentTo: linkProject };
+        message = `Tur sendt til ${linkProject} og lagret her.`;
+      } else {
+        message = "Privat tur lagret bare her. Den er ikke sendt.";
+      }
+    }
     setTrips((list) => [trip, ...list]);
     setView("overview");
     showToast({
-      message: `Tur lagret som ${PURPOSE_LABELS[trip.purpose ?? "unspecified"]}.`,
+      message,
       duration: 5000,
       restoreId: `trip-${trip.id}`,
     });
+    return null;
   }
 
   function deleteTrip(id: string) {
@@ -94,7 +139,12 @@ export default function App() {
     });
   }
 
-  const showTabs = view !== "register";
+  const page = route.name === "admin" || route.name === "dashbord" ? route.name : null;
+  const showTabs = page !== null || view !== "register";
+  function goTab(v: View) {
+    if (page) window.location.hash = "";
+    setView(v);
+  }
 
   return (
     <div className="shell">
@@ -114,17 +164,28 @@ export default function App() {
         </button>
       </header>
       <main className="page" style={showTabs ? undefined : { paddingBottom: 148 }}>
-        {view === "overview" && (
+        {route.name === "admin" && <Admin />}
+        {route.name === "dashbord" && <Dashbord id={route.id} />}
+        {!page && link && view !== "register" && (
+          <div className={link.status === "ok" ? "privacy" : "notice bad"} role={link.status === "ugyldig" || link.status === "feil" ? "alert" : undefined}>
+            {link.status === "laster" && <p style={{ margin: 0 }}>Sjekker lenken …</p>}
+            {link.status === "ok" && <p style={{ margin: 0 }}>Du registrerer for <strong>{link.navn}</strong>. Jobbreiser sendes til prosjektet uten navn. Private reiser blir bare her.</p>}
+            {link.status === "ugyldig" && <p style={{ margin: 0 }}>Lenken er ikke gyldig. Be om en ny lenke. Du kan fortsatt lagre turer i denne nettleseren.</p>}
+            {link.status === "feil" && <p style={{ margin: 0 }}>{link.feil}</p>}
+          </div>
+        )}
+        {!page && view === "overview" && (
           <Overview
             trips={trips}
             onStart={() => setView("register")}
             onDelete={deleteTrip}
             onClear={() => setTrips([])}
             onMark={(id: string, purpose: Purpose) => setTrips((l) => markPurpose(l, id, purpose))}
+            note={linkProject ? `Turer i denne nettleseren. Jobbturer du lagrer nå sendes også til ${linkProject}.` : undefined}
           />
         )}
-        {view === "register" && <RegisterTrip onSave={saved} onCancel={() => setView("overview")} />}
-        {view === "method" && <Method />}
+        {!page && view === "register" && <RegisterTrip onSave={saved} onCancel={() => setView("overview")} linkProject={linkProject} />}
+        {!page && view === "method" && <Method />}
       </main>
       {toast && (
         <div className="toast" ref={toastRef} tabIndex={-1} role="status" aria-live="polite" aria-atomic="true">
@@ -139,11 +200,11 @@ export default function App() {
       {showTabs && (
         <nav className="tabbar" aria-label="Hovedmeny">
           <div className="in">
-            <button type="button" aria-current={view === "overview" ? "page" : undefined} onClick={() => setView("overview")}>
+            <button type="button" aria-current={!page && view === "overview" ? "page" : undefined} onClick={() => goTab("overview")}>
               <IconList />
               Oversikt
             </button>
-            <button type="button" aria-current={view === "method" ? "page" : undefined} onClick={() => setView("method")}>
+            <button type="button" aria-current={!page && view === "method" ? "page" : undefined} onClick={() => goTab("method")}>
               <IconBook />
               Metode
             </button>

@@ -1,0 +1,178 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api, serverAvailable } from "../api";
+import { Button } from "../components/Button";
+import { Field } from "../components/Field";
+import { Qr } from "../components/Qr";
+import { fmtDate } from "../format";
+import { dashbordUrl, lenkeUrl } from "../route";
+
+interface Prosjekt { id: string; navn: string; status: string; registrerte_reiser: number }
+interface Lenke { id: string; prefiks: string; opprettet: string; utloper: string; trukket_tilbake: string | null }
+interface NyLenke { token: string; lenke: Lenke }
+
+const KEY = "carboncut.devkey";
+const origin = () => window.location.origin;
+
+export function lenkeStatus(l: Lenke, naa = new Date().toISOString()): "aktiv" | "utlopt" | "trukket" {
+  if (l.trukket_tilbake) return "trukket";
+  return l.utloper <= naa ? "utlopt" : "aktiv";
+}
+const STATUS_TEKST = { aktiv: "Aktiv", utlopt: "Utløpt", trukket: "Trukket tilbake" } as const;
+
+export function Admin() {
+  const [key, setKey] = useState(() => sessionStorage.getItem(KEY) ?? "");
+  const [keyInput, setKeyInput] = useState("");
+  const [prosjekter, setProsjekter] = useState<Prosjekt[] | null>(null);
+  const [feil, setFeil] = useState<string | null>(null);
+  const [navn, setNavn] = useState("");
+  const [valgt, setValgt] = useState<string | null>(null);
+  const [lenker, setLenker] = useState<Lenke[]>([]);
+  const [ny, setNy] = useState<NyLenke | null>(null);
+  const [bekreft, setBekreft] = useState<string | null>(null);
+  const [kopiert, setKopiert] = useState(false);
+  const h1 = useRef<HTMLHeadingElement>(null);
+  const nyRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { h1.current?.focus(); }, []);
+  useEffect(() => { if (ny) nyRef.current?.focus(); }, [ny]);
+
+  const hent = useCallback(async () => {
+    if (!key) return;
+    const r = await api<{ prosjekter: Prosjekt[] }>("/api/admin/prosjekter", { adminKey: key });
+    if (r.ok) { setProsjekter(r.data.prosjekter); setFeil(null); }
+    else {
+      setFeil(r.status === 401 ? "Feil dev-nøkkel." : r.feil);
+      if (r.status === 401) { sessionStorage.removeItem(KEY); setKey(""); }
+    }
+  }, [key]);
+  useEffect(() => { void hent(); }, [hent]);
+
+  const hentLenker = useCallback(async (id: string) => {
+    const r = await api<{ lenker: Lenke[] }>(`/api/admin/prosjekter/${id}/lenker`, { adminKey: key });
+    if (r.ok) setLenker(r.data.lenker); else setFeil(r.feil);
+  }, [key]);
+  useEffect(() => { if (valgt) void hentLenker(valgt); }, [valgt, hentLenker]);
+
+  async function opprettProsjekt() {
+    const r = await api<{ prosjekt: Prosjekt }>("/api/admin/prosjekter", { method: "POST", adminKey: key, body: JSON.stringify({ navn }) });
+    if (!r.ok) { setFeil(r.feil); return; }
+    setNavn(""); setFeil(null); await hent(); setValgt(r.data.prosjekt.id);
+  }
+  async function lagLenke(sti: string) {
+    setNy(null); setKopiert(false);
+    const r = await api<NyLenke>(sti, { method: "POST", adminKey: key });
+    if (!r.ok) { setFeil(r.feil); return; }
+    setNy(r.data); setFeil(null);
+    if (valgt) await hentLenker(valgt);
+  }
+  async function trekk(id: string) {
+    setBekreft(null);
+    const r = await api(`/api/admin/lenker/${id}/trekk-tilbake`, { method: "POST", adminKey: key });
+    if (!r.ok) setFeil(r.feil);
+    if (valgt) await hentLenker(valgt);
+  }
+
+  if (!serverAvailable()) {
+    return <section className="narrow"><h1 ref={h1} tabIndex={-1}>Admin</h1><p className="notice">Serveren er ikke satt opp ennå.</p></section>;
+  }
+
+  if (!key) {
+    return (
+      <section className="narrow">
+        <h1 ref={h1} tabIndex={-1}>Admin</h1>
+        <p className="notice open"><strong>Midlertidig innlogging for lokal utvikling.</strong> Byttes ut med ekte innlogging før serveren tas i bruk.</p>
+        {feil && <p className="notice bad" role="alert">{feil}</p>}
+        <form onSubmit={(e) => { e.preventDefault(); sessionStorage.setItem(KEY, keyInput); setKey(keyInput); setKeyInput(""); }}>
+          <Field id="devkey" label="Dev-nøkkel" type="password" compact autoComplete="off" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} hint="Står i server/.dev.vars (ADMIN_DEV_KEY). Lagres bare i denne fanen." />
+          <Button type="submit" disabled={!keyInput}>Logg inn</Button>
+        </form>
+      </section>
+    );
+  }
+
+  const prosjekt = prosjekter?.find((p) => p.id === valgt) ?? null;
+  const url = ny ? lenkeUrl(origin(), ny.token) : "";
+
+  return (
+    <section className="narrow">
+      <h1 ref={h1} tabIndex={-1}>Admin</h1>
+      <p className="small muted">Midlertidig dev-innlogging. <button type="button" className="linkbtn" onClick={() => { sessionStorage.removeItem(KEY); setKey(""); setProsjekter(null); }}>Logg ut</button></p>
+      <div aria-live="polite">{feil && <p className="notice bad" role="alert">{feil}</p>}</div>
+
+      {ny && (
+        <section className="card reveal" aria-labelledby="ny-tittel">
+          <h2 id="ny-tittel" ref={nyRef} tabIndex={-1}>Ny delelenke</h2>
+          <p className="notice"><strong>Lenken vises bare nå.</strong> Kopier den eller skriv ut QR-koden før du lukker. Serveren lagrer den ikke og kan ikke vise den igjen.</p>
+          <Qr text={url} label="QR-kode for delelenken" />
+          <p className="linkbox">{url}</p>
+          <div className="row-actions">
+            <Button variant="secondary" className="small" onClick={async () => { try { await navigator.clipboard.writeText(url); setKopiert(true); } catch { setKopiert(false); } }}>
+              {kopiert ? "Kopiert" : "Kopier lenke"}
+            </Button>
+            <Button variant="secondary" className="small" onClick={() => window.print()}>Skriv ut</Button>
+            <Button className="small" onClick={() => setNy(null)}>Ferdig</Button>
+          </div>
+          <p className="small muted" style={{ marginTop: 10 }}>Gyldig til {fmtDate(ny.lenke.utloper)}. Lenken gir bare rett til å registrere jobbreiser på prosjektet.</p>
+        </section>
+      )}
+
+      <section className="card" aria-labelledby="p-tittel">
+        <h2 id="p-tittel">Prosjekter</h2>
+        {prosjekter === null ? <p className="muted">Henter …</p> : prosjekter.length === 0 ? <p className="muted">Ingen prosjekter ennå.</p> : (
+          <ul className="plist">
+            {prosjekter.map((p) => (
+              <li key={p.id}>
+                <button type="button" className="prow" aria-pressed={valgt === p.id} onClick={() => { setValgt(p.id); setNy(null); }}>
+                  <span className="t">{p.navn}</span>
+                  <span className="small muted">{p.registrerte_reiser.toLocaleString("nb-NO")} registrerte reiser{p.status !== "aktiv" ? " · arkivert" : ""}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form onSubmit={(e) => { e.preventDefault(); void opprettProsjekt(); }} style={{ marginTop: 14 }}>
+          <Field id="pnavn" label="Nytt prosjekt" type="text" compact maxLength={80} value={navn} onChange={(e) => setNavn(e.target.value)} placeholder="Prosjektnavn" />
+          <Button type="submit" variant="secondary" disabled={navn.trim().length < 2}>Opprett prosjekt</Button>
+        </form>
+      </section>
+
+      {prosjekt && (
+        <section className="card" aria-labelledby="l-tittel">
+          <h2 id="l-tittel">Delelenker for {prosjekt.navn}</h2>
+          <p className="small"><a href={dashbordUrl(origin(), prosjekt.id)}>Åpent dashbord for prosjektet</a></p>
+          <Button onClick={() => void lagLenke(`/api/admin/prosjekter/${prosjekt.id}/lenker`)} disabled={prosjekt.status !== "aktiv"}>Lag ny delelenke</Button>
+          {lenker.length === 0 ? <p className="muted" style={{ marginTop: 12 }}>Ingen lenker ennå.</p> : (
+            <ul className="plist" style={{ marginTop: 12 }}>
+              {lenker.map((l) => {
+                const s = lenkeStatus(l);
+                return (
+                  <li key={l.id} className="lrow">
+                    <div>
+                      <span className="t mono">{l.prefiks}…</span> <span className={`tag ${s === "aktiv" ? "work" : "none"}`}>{STATUS_TEKST[s]}</span>
+                      <p className="small muted" style={{ margin: "4px 0 0" }}>Laget {fmtDate(l.opprettet)} · {s === "trukket" ? `trukket ${fmtDate(l.trukket_tilbake!)}` : `gyldig til ${fmtDate(l.utloper)}`}</p>
+                    </div>
+                    {s === "aktiv" && (
+                      <div className="row-actions">
+                        {bekreft === l.id ? (
+                          <>
+                            <Button variant="danger" className="small" onClick={() => void trekk(l.id)}>Bekreft: trekk tilbake</Button>
+                            <Button variant="secondary" className="small" onClick={() => setBekreft(null)}>Avbryt</Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button variant="secondary" className="small" onClick={() => setBekreft(l.id)}>Trekk tilbake</Button>
+                            <Button variant="secondary" className="small" onClick={() => void lagLenke(`/api/admin/lenker/${l.id}/forny`)}>Forny</Button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="small muted" style={{ marginTop: 10 }}>«Forny» trekker tilbake den gamle lenken og lager en ny i samme operasjon. Personer med den gamle lenken kan ikke registrere mer.</p>
+        </section>
+      )}
+    </section>
+  );
+}

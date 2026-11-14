@@ -19,6 +19,8 @@ export interface StoredTrip {
   /** Resultatet slik det ble regnet da turen ble lagret (inkl. faktor-snapshot). Regnes ikke om. */
   result: TripResult;
   savedAt: string;
+  /** Prosjektnavn hvis jobbturen er sendt via delelenke. Bare jobbturer kan ha dette. */
+  sentTo?: string;
 }
 
 export type PurposeOrUnknown = Purpose | "unspecified";

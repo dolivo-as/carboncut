@@ -1,0 +1,21 @@
+# CarbonCut API – trinn 2. KUN LOKAL BRUK inntil eieren har godkjent Cloudflare-konto (alternativ A i v0.2).
+# Ingen account_id her. database_id er en plassholder; ekte id settes først når D1 opprettes med jurisdiksjon «eu».
+name = "carboncut-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false   # ingen utrulling ved et uhell
+
+[vars]
+# Produksjon: bare carboncut.no. Lokale opphav (localhost) settes i .dev.vars (DEV_ORIGINS), som ikke sjekkes inn.
+ALLOWED_ORIGINS = "https://carboncut.no"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "carboncut"
+database_id = "00000000-0000-0000-0000-000000000000"   # plassholder – lokal D1 bruker ikke denne
+migrations_dir = "migrations"
+
+# Rydding av tellere og døgnsalt. Kjører ikke lokalt med mindre --test-scheduled brukes.
+[triggers]
+crons = ["17 * * * *"]

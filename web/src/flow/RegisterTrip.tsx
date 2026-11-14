@@ -17,7 +17,10 @@ interface SegRow { key: number; mode: Mode; km: string }
 let seq = 1;
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function RegisterTrip({ onSave, onCancel }: { onSave: (t: StoredTrip) => void; onCancel: () => void }) {
+/** onSave kan returnere en feiltekst (f.eks. når jobbturen ikke kom fram til serveren); da blir brukeren stående på resultatet. */
+export type SaveHandler = (t: StoredTrip, honeypot: string) => void | string | null | Promise<string | null | void>;
+
+export function RegisterTrip({ onSave, onCancel, linkProject }: { onSave: SaveHandler; onCancel: () => void; linkProject?: string }) {
   const [step, setStep] = useState(1);
   const [purpose, setPurpose] = useState<Purpose | null>(null);
   const [kind, setKind] = useState<Kind>("trip");
@@ -29,6 +32,9 @@ export function RegisterTrip({ onSave, onCancel }: { onSave: (t: StoredTrip) => 
   const [commute, setCommute] = useState("");
   const [avoided, setAvoided] = useState<"one_way" | "return">("return");
   const [attempted, setAttempted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const honeypotRef = useRef<HTMLInputElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => { headingRef.current?.focus(); }, [step]);
@@ -107,8 +113,8 @@ export function RegisterTrip({ onSave, onCancel }: { onSave: (t: StoredTrip) => 
     else setStep((s) => s - 1);
   }
 
-  function save() {
-    if (!result || !purpose) return;
+  async function save() {
+    if (!result || !purpose || sending) return;
     const base = {
       id: crypto.randomUUID?.() ?? String(Date.now()) + Math.random(),
       date,
@@ -117,8 +123,17 @@ export function RegisterTrip({ onSave, onCancel }: { onSave: (t: StoredTrip) => 
       savedAt: new Date().toISOString(),
       result,
     };
-    if (kind === "home_office") onSave({ ...base, kind, oneWayCommuteKm: parseNum(commute), avoided });
-    else onSave({ ...base, kind, returnTrip, segments: segs.map((s) => ({ mode: s.mode, distanceKm: parseNum(s.km) })) });
+    const trip: StoredTrip = kind === "home_office"
+      ? { ...base, kind, oneWayCommuteKm: parseNum(commute), avoided }
+      : { ...base, kind, returnTrip, segments: segs.map((s) => ({ mode: s.mode, distanceKm: parseNum(s.km) })) };
+    setSending(true);
+    setSendError(null);
+    try {
+      const err = await onSave(trip, honeypotRef.current?.value ?? "");
+      if (err) setSendError(err);
+    } finally {
+      setSending(false);
+    }
   }
 
   const update = (key: number, patch: Partial<SegRow>) => setSegs((l) => l.map((s) => (s.key === key ? { ...s, ...patch } : s)));
@@ -138,11 +153,18 @@ export function RegisterTrip({ onSave, onCancel }: { onSave: (t: StoredTrip) => 
     step === 4 && !result ? (calcError ?? "Fyll inn distanse før du kan lagre.") :
     "";
 
-  const nextLabel = step === 4 ? "Lagre turen" : "Neste";
-  const nextDisabled = step === 4 ? !result : false;
+  const sendsToServer = Boolean(linkProject) && purpose === "work";
+  const nextLabel = step === 4 ? (sending ? "Sender …" : sendsToServer ? "Send og lagre" : "Lagre turen") : "Neste";
+  const nextDisabled = step === 4 ? !result || sending : false;
 
   return (
     <section className="narrow">
+      {linkProject && (
+        <div className="hp" aria-hidden="true">
+          <label htmlFor="nettside">Ikke fyll ut dette feltet</label>
+          <input id="nettside" name="nettside" type="text" tabIndex={-1} autoComplete="off" ref={honeypotRef} defaultValue="" />
+        </div>
+      )}
       <ol className="steps" aria-label="Fremgang">
         {STEP_LABELS.map((label, i) => {
           const n = i + 1;
@@ -174,7 +196,11 @@ export function RegisterTrip({ onSave, onCancel }: { onSave: (t: StoredTrip) => 
             <IconLock />
             <div>
               <strong>Personvern</strong>
-              <p style={{ margin: "4px 0 0" }}>Formålet merkes på hver tur, slik at jobb og privat holdes fra hverandre. Alt lagres bare i denne nettleseren. Deling med firma og åpent dashbord kommer først når en server er valgt.</p>
+              <p style={{ margin: "4px 0 0" }}>
+                {linkProject
+                  ? `Jobbreiser sendes til «${linkProject}» uten navn og uten beskrivelse. Private reiser blir bare i denne nettleseren og sendes aldri.`
+                  : "Formålet merkes på hver tur, slik at jobb og privat holdes fra hverandre. Alt lagres bare i denne nettleseren. Deling med firma og åpent dashbord kommer først når en server er valgt."}
+              </p>
             </div>
           </div>
           <div className="notice open">
@@ -316,6 +342,14 @@ export function RegisterTrip({ onSave, onCancel }: { onSave: (t: StoredTrip) => 
           ) : (
             <p className="notice bad" role="alert">{calcError ?? "Mangler tall til å vise et resultat."}</p>
           )}
+          {linkProject && purpose && (
+            <p className="notice" style={{ marginTop: 12 }}>
+              {purpose === "work"
+                ? `Turen sendes til «${linkProject}» når du lagrer. Beskrivelsen blir bare her.`
+                : "Privat tur: lagres bare i denne nettleseren og sendes ikke til prosjektet."}
+            </p>
+          )}
+          {sendError && <p className="notice bad" role="alert">{sendError}</p>}
         </>
       )}
 
@@ -323,7 +357,7 @@ export function RegisterTrip({ onSave, onCancel }: { onSave: (t: StoredTrip) => 
         <div className="in">
           <p className="hint">{hint || `Steg ${step} av 4`}</p>
           <Button variant="secondary" onClick={goBack}>{step === 1 ? "Avbryt" : "Tilbake"}</Button>
-          <Button onClick={step === 4 ? save : goNext} disabled={nextDisabled}>{nextLabel}</Button>
+          <Button onClick={step === 4 ? () => void save() : goNext} disabled={nextDisabled}>{nextLabel}</Button>
         </div>
       </div>
     </section>
