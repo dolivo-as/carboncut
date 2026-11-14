@@ -22,6 +22,52 @@ export function lenkeStatus(l: Lenke, naa = new Date().toISOString()): "aktiv" |
 }
 const STATUS_TEKST = { aktiv: "Aktiv", utlopt: "Utløpt", trukket: "Trukket tilbake" } as const;
 
+export const erArkivert = (status: string) => status !== "aktiv";
+
+/**
+ * Arkiver / gjenopprett for valgt prosjekt. Arkivering sletter ingenting: delelenkene slutter å virke og nye
+ * reiser avvises så lenge prosjektet er arkivert. Gjenoppretting gjør lenker som ikke er trukket tilbake
+ * eller utløpt, gyldige igjen.
+ */
+export function Arkivering({ status, bekrefter, onBe, onBekreft, onAvbryt, onGjenopprett }: {
+  status: string;
+  bekrefter: boolean;
+  onBe: () => void;
+  onBekreft: () => void;
+  onAvbryt: () => void;
+  onGjenopprett: () => void;
+}) {
+  if (erArkivert(status)) {
+    return (
+      <div className="arkiv" style={{ marginTop: 16 }}>
+        <p className="notice" role="status">
+          <strong>Prosjektet er arkivert.</strong> Delelenkene virker ikke, og nye reiser tas ikke imot. Ingen data er slettet.
+        </p>
+        <Button variant="secondary" onClick={onGjenopprett}>Gjenopprett prosjekt</Button>
+        <p className="small muted" style={{ marginTop: 8 }}>Lenker som ikke er trukket tilbake eller utløpt, virker igjen etter gjenoppretting.</p>
+      </div>
+    );
+  }
+  if (bekrefter) {
+    return (
+      <div className="arkiv" style={{ marginTop: 16 }}>
+        <p className="notice" role="alert">
+          Arkiverte prosjekter tar ikke imot nye reiser, og alle delelenker slutter å virke. Ingen data slettes, og du kan gjenopprette prosjektet senere.
+        </p>
+        <div className="row-actions">
+          <Button variant="danger" onClick={onBekreft}>Bekreft: arkiver</Button>
+          <Button variant="secondary" onClick={onAvbryt}>Avbryt</Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="arkiv" style={{ marginTop: 16 }}>
+      <Button variant="secondary" onClick={onBe}>Arkiver prosjekt…</Button>
+    </div>
+  );
+}
+
 export function Admin() {
   const [key, setKey] = useState(() => sessionStorage.getItem(KEY) ?? "");
   const [keyInput, setKeyInput] = useState("");
@@ -35,6 +81,7 @@ export function Admin() {
   const [ny, setNy] = useState<NyLenke | null>(null);
   const [visQr, setVisQr] = useState(true);
   const [bekreft, setBekreft] = useState<string | null>(null);
+  const [bekreftArkiv, setBekreftArkiv] = useState(false);
   const [kopiert, setKopiert] = useState(false);
   const h1 = useRef<HTMLHeadingElement>(null);
   const nyRef = useRef<HTMLDivElement>(null);
@@ -87,6 +134,15 @@ export function Admin() {
     const r = await api(`/api/admin/lenker/${id}/trekk-tilbake`, { method: "POST", adminKey: key });
     if (!r.ok) setFeil(r.feil);
     if (valgt) await hentLenker(valgt);
+  }
+
+  async function settArkiv(id: string, handling: "arkiver" | "gjenopprett") {
+    setBekreftArkiv(false);
+    const r = await api(`/api/admin/prosjekter/${id}/${handling}`, { method: "POST", adminKey: key });
+    if (!r.ok) { setFeil(r.feil); return; }
+    setFeil(null); setNy(null);
+    await hent();
+    await hentLenker(id);
   }
 
   if (!serverAvailable()) {
@@ -181,7 +237,7 @@ export function Admin() {
           <ul className="plist">
             {prosjekter.map((p) => (
               <li key={p.id}>
-                <button type="button" className="prow" aria-pressed={valgt === p.id} onClick={() => { setValgt(p.id); setNy(null); }}>
+                <button type="button" className="prow" aria-pressed={valgt === p.id} onClick={() => { setValgt(p.id); setNy(null); setBekreftArkiv(false); }}>
                   <span className="t">{p.navn}</span>
                   <span className="small muted">
                     {reiserTekst(p.registrerte_reiser)}
@@ -212,7 +268,7 @@ export function Admin() {
                       <span className="t mono">{l.prefiks}…</span> <span className={`tag ${s === "aktiv" ? "work" : "none"}`}>{STATUS_TEKST[s]}</span>
                       <p className="small muted" style={{ margin: "4px 0 0" }}>Laget {fmtDate(l.opprettet)} · {s === "trukket" ? `trukket ${fmtDate(l.trukket_tilbake!)}` : `gyldig til ${fmtDate(l.utloper)}`}</p>
                     </div>
-                    {s === "aktiv" && (
+                    {s === "aktiv" && !erArkivert(prosjekt.status) && (
                       <div className="row-actions">
                         {bekreft === l.id ? (
                           <>
@@ -232,6 +288,14 @@ export function Admin() {
               })}
             </ul>
           )}
+          <Arkivering
+            status={prosjekt.status}
+            bekrefter={bekreftArkiv}
+            onBe={() => setBekreftArkiv(true)}
+            onBekreft={() => void settArkiv(prosjekt.id, "arkiver")}
+            onAvbryt={() => setBekreftArkiv(false)}
+            onGjenopprett={() => void settArkiv(prosjekt.id, "gjenopprett")}
+          />
           <p className="small muted" style={{ marginTop: 10 }}>«Forny» trekker tilbake den gamle lenken og lager en ny i samme operasjon. Personer med den gamle lenken kan ikke registrere mer.</p>
         </section>
       )}

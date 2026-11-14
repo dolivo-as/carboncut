@@ -41,6 +41,8 @@ Laget må byttes ut med Clerk (runde 2) før serveren kobles til en ekte konto. 
 | `GET/POST /api/admin/prosjekter/:id/lenker` | admin | Lister lenker (bare prefiks) eller lager ny (valgfritt `utloper_maaneder`). Tokenet vises én gang |
 | `POST /api/admin/lenker/:id/trekk-tilbake` | admin | Trekker lenken tilbake, gjelder straks |
 | `POST /api/admin/lenker/:id/forny` | admin | Trekker tilbake og lager ny i én D1-batch (transaksjon) |
+| `POST /api/admin/prosjekter/:id/arkiver` | admin | Arkiverer prosjektet (logges). Delelenkene gir da samme 404 som ukjent lenke, ny lenke og fornying gir 409. Ingenting slettes, og lenkene røres ikke. Idempotent |
+| `POST /api/admin/prosjekter/:id/gjenopprett` | admin | Setter prosjektet aktivt igjen (logges). Lenker som ikke er trukket tilbake eller utløpt, virker igjen. Idempotent |
 | `POST /api/admin/reiser/:id/skjul` | admin | Skjuler én reise (logges). Har ikke grensesnitt ennå |
 
 Body for `POST /api/reiser`:
@@ -68,6 +70,7 @@ eller `{ …, type: "hjemmekontor", pendling_km, tur_retur }`. Tall fra klienten
 6. **«Caches»:** bare `Cache-Control: public, max-age=300` på dashbordet, ikke Cache API eller KV.
 7. **`prosjekt.offentlig` (migrering 0002):** 1 = åpent dashbord, 0 = skjult. Skjult gir samme 404 som ukjent id. Forvalgt 1.
 8. **Valgbart utløp:** lenker kan vare 3, 6 eller 12 måneder (forvalgt 12). Andre verdier avvises med 422.
+9. **Arkivering (migrering 0003):** `prosjekt.status` (aktiv|arkivert) fantes fra 0001. 0003 utvider bare `hendelseslogg.handling` med `arkiver_prosjekt` og `gjenopprett_prosjekt` (tabellen bygges på nytt, radene kopieres). Offentlig dashbord for et arkivert prosjekt vises fortsatt, med `status: "arkivert"`. Antakelse, ikke spesifisert i v0.2 – se commit-meldingen.
 
 ## Avhengigheter og npm audit (14.11.2026)
 

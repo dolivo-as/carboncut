@@ -57,6 +57,7 @@ export function Dashbord({ id }: { id: string | null }) {
     <section className="narrow dash-page">
       <p className="small muted" style={{ margin: 0 }}>Offentlig dashbord</p>
       <h1 ref={h1} tabIndex={-1}>{d ? d.prosjekt.navn : "Dashbord"}</h1>
+      {d?.prosjekt.status === "arkivert" && <p className="small muted">Prosjektet er arkivert og tar ikke imot nye reiser.</p>}
       <div aria-live="polite">
         {svar.status === "laster" && <p className="muted">Henter tall …</p>}
         {svar.status === "feil" && <p className="notice bad" role="alert">{svar.feil}</p>}

@@ -207,6 +207,24 @@ async function admin(req: Request, env: Env, sti: string[], naa: number): Promis
     }
   }
 
+  // /api/admin/prosjekter/:id/(arkiver|gjenopprett)
+  // Arkivert: nye reiser og lenkeoppslag gir samme 404 som ukjent lenke (finnGyldigLenke), nye lenker og
+  // fornying gir 409. Ingenting slettes, og lenkene røres ikke, så gjenoppretting er fullt reversibel.
+  if (sti.length === 3 && sti[0] === "prosjekter" && m === "POST" && (sti[2] === "arkiver" || sti[2] === "gjenopprett")) {
+    if (!UUID_RE.test(sti[1])) return feil(404, "Fant ikke prosjektet.");
+    const p = await env.DB.prepare("SELECT id, status FROM prosjekt WHERE id = ? AND bedrift_id = ?").bind(sti[1], bedrift).first<{ id: string; status: string }>();
+    if (!p) return feil(404, "Fant ikke prosjektet.");
+    const ny = sti[2] === "arkiver" ? "arkivert" : "aktiv";
+    // Idempotent: samme tilstand to ganger gir 200 og logges ikke på nytt.
+    if (p.status !== ny) {
+      await env.DB.batch([
+        env.DB.prepare("UPDATE prosjekt SET status = ? WHERE id = ?").bind(ny, p.id),
+        logg(env, a.adminId, sti[2] === "arkiver" ? "arkiver_prosjekt" : "gjenopprett_prosjekt", p.id, naa),
+      ]);
+    }
+    return json({ prosjekt: { id: p.id, status: ny } });
+  }
+
   // /api/admin/prosjekter/:id/lenker
   if (sti.length === 3 && sti[0] === "prosjekter" && sti[2] === "lenker") {
     const p = await env.DB.prepare("SELECT id, status FROM prosjekt WHERE id = ? AND bedrift_id = ?").bind(sti[1], bedrift).first<{ id: string; status: string }>();
