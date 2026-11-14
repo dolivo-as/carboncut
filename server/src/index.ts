@@ -43,11 +43,13 @@ async function finnGyldigLenke(env: Env, token: unknown, naa: number): Promise<L
 
 // ---------- Offentlig ----------
 
-const forMange = () => json({ feil: "For mange forsøk. Prøv igjen om en time." }, 429, { "retry-after": "3600" });
+// Retry-After = sekunder til timevinduet i tellIp nullstilles (1–3600), ikke alltid 3600.
+const forMange = (naa: number) =>
+  json({ feil: "For mange forsøk. Prøv igjen om en time." }, 429, { "retry-after": String(sekTilNyttVindu(3600, naa)) });
 
 async function lenkeInfo(req: Request, env: Env, naa: number): Promise<Response> {
   // Samme IP-teller som registrering (Tech Lead 14.11): hindrer at oppslaget brukes til å belaste serveren.
-  if (!(await tellIp(env.DB, req.headers.get("cf-connecting-ip"), naa))) return forMange();
+  if (!(await tellIp(env.DB, req.headers.get("cf-connecting-ip"), naa))) return forMange(naa);
   let body: Record<string, unknown>;
   try { body = (await lesJson(req)) as Record<string, unknown>; } catch { return lenkeUgyldig(); }
   const l = await finnGyldigLenke(env, body?.token, naa);
@@ -56,7 +58,7 @@ async function lenkeInfo(req: Request, env: Env, naa: number): Promise<Response>
 }
 
 async function registrer(req: Request, env: Env, naa: number): Promise<Response> {
-  if (!(await tellIp(env.DB, req.headers.get("cf-connecting-ip"), naa))) return forMange();
+  if (!(await tellIp(env.DB, req.headers.get("cf-connecting-ip"), naa))) return forMange(naa);
   let b: Record<string, unknown>;
   try {
     const v = await lesJson(req);

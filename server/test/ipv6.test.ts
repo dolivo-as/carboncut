@@ -47,7 +47,8 @@ describe("POST /api/lenke har ratebegrensning", () => {
     }
     const r = await kall("/api/lenke", { method: "POST", body: JSON.stringify({ token }), ip });
     expect(r.status).toBe(429);
-    expect(r.headers.get("retry-after")).toBe("3600");
+    const ra = Number(r.headers.get("retry-after"));
+    expect(Number.isInteger(ra) && ra >= 1 && ra <= 3600).toBe(true);
     // Og oppslag teller mot samme kvote som registrering.
     expect((await registrer(token, {}, ip)).status).toBe(429);
   });

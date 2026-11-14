@@ -9,9 +9,15 @@ describe("ratebegrensning", () => {
     const { token } = await nyLenke(p);
     const ip = "198.51.100.10";
     for (let i = 0; i < GRENSE_IP_PER_TIME; i++) expect((await registrer(token, {}, ip)).status).toBe(201);
+    const foer = Math.floor(Date.now() / 1000);
     const r = await registrer(token, {}, ip);
+    const etter = Math.floor(Date.now() / 1000);
     expect(r.status).toBe(429);
-    expect(r.headers.get("retry-after")).toBe("3600");
+    // Retry-After = sekunder til timevinduet nullstilles, alltid et heltall i 1–3600.
+    const ra = Number(r.headers.get("retry-after"));
+    expect(Number.isInteger(ra)).toBe(true);
+    expect(ra).toBeGreaterThanOrEqual(3600 - (etter % 3600));
+    expect(ra).toBeLessThanOrEqual(3600 - (foer % 3600));
     // En annen IP slipper fortsatt til.
     expect((await registrer(token, {}, "198.51.100.11")).status).toBe(201);
   });
@@ -49,6 +55,8 @@ describe("sekTilNyttVindu", () => {
     expect(sekTilNyttVindu(86_400, Date.UTC(2026, 10, 16, 0, 0, 0))).toBe(86_400);
     expect(sekTilNyttVindu(86_400, Date.UTC(2026, 10, 16, 23, 59, 59))).toBe(1);
     expect(sekTilNyttVindu(86_400, Date.UTC(2026, 10, 16, 12, 0, 0, 500))).toBe(43_200);
+    expect(sekTilNyttVindu(3600, Date.UTC(2026, 10, 16, 10, 0, 0))).toBe(3600);
+    expect(sekTilNyttVindu(3600, Date.UTC(2026, 10, 16, 10, 59, 59, 999))).toBe(1);
   });
 });
 
