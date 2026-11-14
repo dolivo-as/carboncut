@@ -737,3 +737,33 @@ a { color: var(--fg); font-weight: 700; }
   .admin-page { max-width: 860px; }
   .dash-hero .big { font-size: 72px; }
 }
+
+/* ---- A4-plakat med QR-kode (punkt 3 etter 16.11) ----
+   Vises bare ved utskrift fra «Skriv ut A4-plakat» (body.skriver-plakat). Én A4-side, stående.
+   Alltid svart på hvitt (21:1), uavhengig av lyst/mørkt tema. QR 120 mm med stillesone på 4 moduler. */
+.plakat { display: none; }
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  body.skriver-plakat { background: #ffffff !important; margin: 0; }
+  body.skriver-plakat > *:not(.plakat) { display: none !important; }
+  body.skriver-plakat .plakat {
+    display: flex; flex-direction: column; align-items: center; gap: 5mm;
+    box-sizing: border-box; width: 100%; max-height: 272mm; overflow: hidden;
+    break-inside: avoid; page-break-inside: avoid; break-after: avoid;
+    color: #000000; background: #ffffff; text-align: center;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .plakat p, .plakat h1, .plakat ol { margin: 0; color: #000000; }
+  /* Den generelle print-regelen over skjuler h1; plakattittelen må vises. */
+  body.skriver-plakat .plakat .plakat-tittel { display: block !important; }
+  .plakat-merke { font-size: 14pt; font-weight: 700; letter-spacing: 0.05em; }
+  .plakat-tittel { font-size: 34pt; font-weight: 800; line-height: 1.1; }
+  .plakat-prosjekt { font-size: 22pt; font-weight: 800; overflow-wrap: anywhere; max-width: 180mm; }
+  .plakat-qr { display: block; width: 120mm; height: 120mm; border: 0; }
+  .plakat-steg { font-size: 16pt; line-height: 1.35; text-align: left; max-width: 165mm; padding-left: 9mm; }
+  .plakat-personvern { font-size: 13pt; }
+  .plakat-lenke { font-size: 9pt; font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-all; max-width: 180mm; }
+  .plakat-lenke span { font-family: system-ui, Arial, sans-serif; font-size: 11pt; }
+  .plakat-gyldig { font-size: 11pt; }
+}

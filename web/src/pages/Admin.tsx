@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState, type Ref } from "react";
 import { api, serverAvailable } from "../api";
 import { Button } from "../components/Button";
 import { Field } from "../components/Field";
+import { createPortal } from "react-dom";
+import { Plakat } from "../components/Plakat";
 import { Qr } from "../components/Qr";
 import { SegmentedChoice } from "../components/SegmentedChoice";
 import { UTLØP_FORVALGT, type UtloperMaaneder } from "../flowLogic";
@@ -12,10 +14,32 @@ import { dashbordUrl, lenkeUrl } from "../route";
 
 export interface Prosjekt { id: string; navn: string; status: string; registrerte_reiser: number; offentlig?: boolean }
 export interface Lenke { id: string; prefiks: string; opprettet: string; utloper: string; trukket_tilbake: string | null }
-interface NyLenke { token: string; lenke: Lenke }
+interface NyLenke { token: string; lenke: Lenke; prosjektId?: string }
 
 const KEY = "carboncut.devkey";
 const origin = () => window.location.origin;
+
+/**
+ * A4-plakaten kan bare skrives ut når admin har tokenet i minnet (rett etter oppretting/fornying, fordi
+ * serveren bare lagrer hashen), lenken er aktiv, og prosjektet ikke er arkivert.
+ */
+export function kanSkriveUtPlakat(
+  prosjekt: { id: string; status: string } | null,
+  ny: { lenke: Lenke; prosjektId?: string } | null,
+  naa = new Date().toISOString(),
+): boolean {
+  if (!prosjekt || !ny || prosjekt.status !== "aktiv") return false;
+  if (ny.prosjektId !== undefined && ny.prosjektId !== prosjekt.id) return false;
+  return lenkeStatus(ny.lenke, naa) === "aktiv";
+}
+
+/** Skriver ut bare plakaten: body får klassen mens utskriftsdialogen er åpen. */
+export function skrivUtPlakat(win: Pick<Window, "print" | "addEventListener"> = window, body: HTMLElement = document.body) {
+  body.classList.add("skriver-plakat");
+  const rydd = () => body.classList.remove("skriver-plakat");
+  win.addEventListener("afterprint", rydd, { once: true });
+  win.print();
+}
 
 export function lenkeStatus(l: Lenke, naa = new Date().toISOString()): "aktiv" | "utlopt" | "trukket" {
   if (l.trukket_tilbake) return "trukket";
@@ -271,7 +295,7 @@ export function Admin() {
     if (!r.ok) { setFeil(r.feil); return; }
     setNavn(""); setUtloper(UTLØP_FORVALGT); setOffentlig(true); setFeil(null);
     setKopiert(false); setVisQr(true);
-    setNy({ token: r.data.token, lenke: r.data.lenke });
+    setNy({ token: r.data.token, lenke: r.data.lenke, prosjektId: r.data.prosjekt.id });
     await hent();
     setValgt(r.data.prosjekt.id);
   }
@@ -283,7 +307,7 @@ export function Admin() {
       body: maaneder ? JSON.stringify({ utloper_maaneder: maaneder }) : undefined,
     });
     if (!r.ok) { setFeil(r.feil); return; }
-    setNy(r.data); setFeil(null);
+    setNy({ ...r.data, prosjektId: valgt ?? undefined }); setFeil(null);
     if (valgt) await hentLenker(valgt);
   }
   async function trekk(id: string) {
@@ -331,6 +355,7 @@ export function Admin() {
 
   const prosjekt = prosjekter?.find((p) => p.id === valgt) ?? null;
   const url = ny ? lenkeUrl(origin(), ny.token) : "";
+  const plakat = kanSkriveUtPlakat(prosjekt, ny);
 
   return (
     <section className="admin-page">
@@ -353,7 +378,9 @@ export function Admin() {
             <Button variant="secondary" onClick={() => setVisQr((v) => !v)}>
               {visQr ? "Skjul QR-kode" : "Vis QR-kode"}
             </Button>
+            {plakat && <Button variant="secondary" onClick={() => skrivUtPlakat()}>Skriv ut A4-plakat</Button>}
           </div>
+          {plakat && prosjekt && ny && createPortal(<Plakat navn={prosjekt.navn} url={url} gyldigTil={ny.lenke.utloper} />, document.body)}
           {visQr && <Qr text={url} label="QR-kode for delelenken" />}
           <p className="small muted" style={{ marginTop: 10 }}>
             Gyldig til {fmtDate(ny.lenke.utloper)}. Lenken gir bare rett til å registrere jobbreiser på prosjektet.
