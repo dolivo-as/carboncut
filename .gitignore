@@ -9,3 +9,6 @@ kilder/
 
 # UX-skjermbilder (ca. 30 MB) holdes lokalt
 ux/*.png
+
+# Testers lokale testdata (fiktive tokener o.l.) skal ikke i repoet
+tester/testdata.json

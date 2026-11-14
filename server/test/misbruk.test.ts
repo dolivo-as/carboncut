@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { GRENSE_IP_PER_TIME, GRENSE_LENKE_PER_DOGN, rydd } from "../src/misbruk";
+import { GRENSE_IP_PER_TIME, GRENSE_LENKE_PER_DOGN, rydd, sekTilNyttVindu } from "../src/misbruk";
 import { kall, nyLenke, nyttProsjekt, registrer } from "./hjelp";
 
 describe("ratebegrensning", () => {
@@ -29,11 +29,27 @@ describe("ratebegrensning", () => {
       const s = (await registrer(token, {}, `10.${i >> 8}.${i & 255}.1`)).status;
       if (s !== 201) throw new Error(`registrering ${i + 1} ga ${s}`);
     }
-    expect((await registrer(token, {}, "10.250.0.1")).status).toBe(429);
+    const foer = Math.floor(Date.now() / 1000);
+    const stopp = await registrer(token, {}, "10.250.0.1");
+    const etter = Math.floor(Date.now() / 1000);
+    expect(stopp.status).toBe(429);
+    // Retry-After = sekunder til døgnvinduet (UTC) nullstilles.
+    const ra = Number(stopp.headers.get("retry-after"));
+    expect(Number.isInteger(ra)).toBe(true);
+    expect(ra).toBeGreaterThanOrEqual(86_400 - (etter % 86_400));
+    expect(ra).toBeLessThanOrEqual(86_400 - (foer % 86_400));
     // En annen lenke er ikke berørt.
     const annen = await nyLenke(p);
     expect((await registrer(annen.token, {}, "10.250.0.2")).status).toBe(201);
   }, 60_000);
+});
+
+describe("sekTilNyttVindu", () => {
+  it("regner sekunder til neste faste vindu", () => {
+    expect(sekTilNyttVindu(86_400, Date.UTC(2026, 10, 16, 0, 0, 0))).toBe(86_400);
+    expect(sekTilNyttVindu(86_400, Date.UTC(2026, 10, 16, 23, 59, 59))).toBe(1);
+    expect(sekTilNyttVindu(86_400, Date.UTC(2026, 10, 16, 12, 0, 0, 500))).toBe(43_200);
+  });
 });
 
 describe("IP lagres ikke i klartekst", () => {

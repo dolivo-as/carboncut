@@ -38,6 +38,11 @@ export async function tell(db: D1Database, noekkel: string, vinduSek: number, gr
   return (r?.antall ?? 0) <= grense;
 }
 
+/** Sekunder til et fast vindu (samme inndeling som i tell) nullstilles. Brukes i Retry-After. */
+export function sekTilNyttVindu(vinduSek: number, naa: number): number {
+  return vinduSek - (Math.floor(naa / 1000) % vinduSek);
+}
+
 /** Sletter tellere eldre enn 24 t og døgnsalt fra tidligere døgn. */
 export async function rydd(db: D1Database, naa: number): Promise<void> {
   await db.batch([

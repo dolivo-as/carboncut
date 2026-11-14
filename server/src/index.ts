@@ -6,7 +6,7 @@ import { byggDashbord, type Rad } from "./dashbord";
 import type { Env } from "./env";
 import { feil, json, lenkeUgyldig, lesJson } from "./http";
 import { nyttToken, sha256Hex, TOKEN_RE } from "./krypto";
-import { GRENSE_LENKE_PER_DOGN, rydd, tell, tellIp } from "./misbruk";
+import { GRENSE_LENKE_PER_DOGN, rydd, sekTilNyttVindu, tell, tellIp } from "./misbruk";
 import { lesOffentlig, lesUtloperMaaneder, validerReise } from "./validering";
 
 export type { Env };
@@ -74,7 +74,9 @@ async function registrer(req: Request, env: Env, naa: number): Promise<Response>
   if (typeof b.nettside === "string" && b.nettside.trim() !== "") return json({ lagret: true }, 201);
 
   if (!(await tell(env.DB, "lenke:" + l.id, 86_400, GRENSE_LENKE_PER_DOGN, naa))) {
-    return json({ feil: "Lenken har nådd grensen for i dag. Prøv igjen i morgen." }, 429);
+    return json({ feil: "Lenken har nådd grensen for i dag. Prøv igjen i morgen." }, 429, {
+      "retry-after": String(sekTilNyttVindu(86_400, naa)),
+    });
   }
 
   const v = validerReise(b, naa);
