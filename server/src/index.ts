@@ -7,12 +7,14 @@ import type { Env } from "./env";
 import { feil, json, lenkeUgyldig, lesJson } from "./http";
 import { nyttToken, sha256Hex, TOKEN_RE } from "./krypto";
 import { GRENSE_LENKE_PER_DOGN, rydd, sekTilNyttVindu, tell, tellIp } from "./misbruk";
+import { isoUke } from "./uke";
 import { lesOffentlig, lesUtloperMaaneder, validerReise } from "./validering";
 
 export type { Env };
 
 /** Antall reiser admin-skjermen henter (nyeste først). */
 const MAKS_REISER_ADMIN = 200;
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const iso = (ms: number) => new Date(ms).toISOString();
 function plussMaaneder(ms: number, n: number): string {
@@ -300,7 +302,8 @@ async function admin(req: Request, env: Env, sti: string[], naa: number): Promis
   }
 
   // /api/admin/prosjekter/:id/reiser – reiser for skjermbildet «Skjul reiser».
-  // Bare feltene som trengs for å kjenne igjen en feilregistrering: dag, transportmiddel, km, tur-retur og kg.
+  // Bare feltene som trengs for å kjenne igjen en feilregistrering: ISO-uke og uke-år (ikke dag), transportmiddel,
+  // eksakt km, tur-retur og kg (CTO 14.11).
   // Ingen lenke-id, tokenprefiks eller tidspunkt for innsending (kan knyttes til en person). Nyeste 200.
   if (sti.length === 3 && sti[0] === "prosjekter" && sti[2] === "reiser" && m === "GET") {
     if (!UUID_RE.test(sti[1])) return feil(404, "Fant ikke prosjektet.");
@@ -315,7 +318,8 @@ async function admin(req: Request, env: Env, sti: string[], naa: number): Promis
     ]);
     const t = tall.results[0] as { totalt: number; skjulte: number };
     return json({
-      reiser: liste.results.map((r) => ({ ...r, tur_retur: r.tur_retur === 1, skjult: r.skjult === 1 })),
+      // Dagen brukes bare til sortering og ukeberegning her, og sendes ikke ut.
+      reiser: liste.results.map(({ dato, ...r }) => ({ ...r, ...isoUke(String(dato)), tur_retur: r.tur_retur === 1, skjult: r.skjult === 1 })),
       totalt: t.totalt,
       skjulte: t.skjulte,
       maks: MAKS_REISER_ADMIN,

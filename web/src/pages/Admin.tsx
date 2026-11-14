@@ -128,7 +128,7 @@ export function trengerForny(status: string, lenker: Lenke[], naa = new Date().t
   return [...lenker].sort((a, b) => b.opprettet.localeCompare(a.opprettet))[0];
 }
 
-export interface AdminReise { id: string; dato: string; transportmiddel: string; distanse_km: number; tur_retur: boolean; utslipp_kg: number; referanse_kg: number; skjult: boolean }
+export interface AdminReise { id: string; uke: number; aar: number; transportmiddel: string; distanse_km: number; tur_retur: boolean; utslipp_kg: number; referanse_kg: number; skjult: boolean }
 export interface ReiseSvar { reiser: AdminReise[]; totalt: number; skjulte: number; maks: number }
 
 export const REISE_TEKST = {
@@ -139,10 +139,16 @@ export const REISE_TEKST = {
 
 const modeNavn = (k: string) => MODE_LABELS[k as TransportMode]?.nb ?? k;
 
-/** Én linje som beskriver reisen uten persondata: dag, transportmiddel, km og tur-retur. */
-export function reiseLinje(r: AdminReise): string {
+/** «Uke 46», eller «Uke 46, 2026» når lista spenner over flere uke-år (CTO 14.11: uke, ikke dag). */
+export function ukeTekst(r: Pick<AdminReise, "uke" | "aar">, flereAar: boolean): string {
+  return flereAar ? `Uke ${r.uke}, ${r.aar}` : `Uke ${r.uke}`;
+}
+export const flereAar = (rs: Pick<AdminReise, "aar">[]) => new Set(rs.map((r) => r.aar)).size > 1;
+
+/** Én linje som beskriver reisen uten persondata: uke, transportmiddel, eksakt km og tur-retur. */
+export function reiseLinje(r: AdminReise, visAar = false): string {
   const km = r.transportmiddel === "home_office" ? `${fmtKm(r.distanse_km)} km unngått` : `${fmtKm(r.distanse_km)} km`;
-  return [fmtDate(r.dato), modeNavn(r.transportmiddel), km, r.tur_retur ? "tur-retur" : null].filter(Boolean).join(" · ");
+  return [ukeTekst(r, visAar), modeNavn(r.transportmiddel), km, r.tur_retur ? "tur-retur" : null].filter(Boolean).join(" · ");
 }
 
 /** Skjermbildet «Registrerte reiser» for valgt prosjekt (punkt 2 etter 16.11). */
@@ -152,6 +158,7 @@ export function ReiseListe({ svar, status, onSkjul, onVis }: {
   onSkjul: (id: string) => void;
   onVis: (id: string) => void;
 }) {
+  const visAar = svar ? flereAar(svar.reiser) : false;
   return (
     <>
       <p className="small muted">{REISE_TEKST.intro}</p>
@@ -166,7 +173,7 @@ export function ReiseListe({ svar, status, onSkjul, onVis }: {
             {svar.reiser.map((r) => (
               <li key={r.id} className="lrow">
                 <div>
-                  <span className="t">{reiseLinje(r)}</span>
+                  <span className="t">{reiseLinje(r, visAar)}</span>
                   {r.skjult && <> <span className="tag none">Skjult</span></>}
                   <p className="small muted" style={{ margin: "4px 0 0" }}>Estimert spart {fmtKg(r.referanse_kg - r.utslipp_kg)} kg CO₂e</p>
                 </div>

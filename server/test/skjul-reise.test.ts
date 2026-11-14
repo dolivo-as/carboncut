@@ -1,8 +1,9 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { isoUke } from "../src/uke";
 import { ADMIN, kall, nyLenke, nyttProsjekt, registrer } from "./hjelp";
 
-interface AdminReise { id: string; dato: string; transportmiddel: string; distanse_km: number; tur_retur: boolean; utslipp_kg: number; referanse_kg: number; skjult: boolean }
+interface AdminReise { id: string; uke: number; aar: number; transportmiddel: string; distanse_km: number; tur_retur: boolean; utslipp_kg: number; referanse_kg: number; skjult: boolean }
 interface ReiseSvar { reiser: AdminReise[]; totalt: number; skjulte: number; maks: number }
 
 const hentReiser = async (p: string) => (await (await kall(`/api/admin/prosjekter/${p}/reiser`, { admin: true })).json()) as ReiseSvar;
@@ -25,7 +26,7 @@ async function settInn(p: string, lenkeId: string, datoer: string[]) {
 }
 
 describe("skjul reiser: liste for admin", () => {
-  it("viser prosjektets reiser uten lenke-id, token eller innsendingstidspunkt", async () => {
+  it("viser prosjektets reiser uten dag, lenke-id, token eller innsendingstidspunkt", async () => {
     const p = await nyttProsjekt("Fiktivt reiseprosjekt A");
     const { token } = await nyLenke(p);
     expect((await registrer(token)).status).toBe(201);
@@ -36,14 +37,16 @@ describe("skjul reiser: liste for admin", () => {
     expect(j.totalt).toBe(1);
     expect(j.skjulte).toBe(0);
     expect(j.reiser).toHaveLength(1);
-    expect(Object.keys(j.reiser[0]).sort()).toEqual(["dato", "distanse_km", "id", "referanse_kg", "skjult", "transportmiddel", "tur_retur", "utslipp_kg"]);
+    expect(Object.keys(j.reiser[0]).sort()).toEqual(["aar", "distanse_km", "id", "referanse_kg", "skjult", "transportmiddel", "tur_retur", "uke", "utslipp_kg"]);
     expect(j.reiser[0].transportmiddel).toBe("city_bus");
     expect(j.reiser[0].skjult).toBe(false);
     expect(tekst).not.toContain(token.slice(0, 6));
-    expect(tekst).not.toMatch(/lenke|opprettet|T\d{2}:\d{2}/);
+    expect(tekst).not.toMatch(/lenke|opprettet|dato|T\d{2}:\d{2}/);
+    expect(tekst).not.toMatch(/\d{4}-\d{2}-\d{2}/); // ingen dag i noe format
+    expect(j.reiser[0]).toMatchObject(isoUke(new Date().toISOString().slice(0, 10)));
   });
 
-  it("nyeste dato først, og høyst 200 reiser (totalt sier hvor mange det er)", async () => {
+  it("nyeste først (sortert på dag på serveren), og høyst 200 reiser", async () => {
     const p = await nyttProsjekt("Fiktivt reiseprosjekt B");
     const { id } = await nyLenke(p);
     const datoer = Array.from({ length: 205 }, (_, i) => `2026-10-${String((i % 28) + 1).padStart(2, "0")}`);
@@ -52,9 +55,9 @@ describe("skjul reiser: liste for admin", () => {
     expect(j.totalt).toBe(205);
     expect(j.maks).toBe(200);
     expect(j.reiser).toHaveLength(200);
-    const d = j.reiser.map((x) => x.dato);
-    expect([...d].sort().reverse()).toEqual(d);
-    expect(d[0]).toBe("2026-10-28");
+    const u = j.reiser.map((x) => x.aar * 100 + x.uke);
+    expect([...u].sort((a, b) => b - a)).toEqual(u);
+    expect(j.reiser[0]).toMatchObject({ uke: 44, aar: 2026 }); // 28.10.2026 er i uke 44
   });
 });
 
@@ -144,6 +147,16 @@ describe("skjul reiser: tilgang", () => {
     const p = await nyttProsjekt("Fiktivt reiseprosjekt G");
     expect((await kall(`/api/admin/prosjekter/${p}/reiser`)).status).toBe(401);
     expect((await kall("/api/admin/reiser/00000000-0000-4000-8000-000000000000/vis", { method: "POST" })).status).toBe(401);
+  });
+});
+
+describe("skjul reiser: ISO-uke", () => {
+  it.each([
+    ["2026-11-14", 46, 2026], ["2026-11-09", 46, 2026], ["2026-11-15", 46, 2026], ["2026-11-16", 47, 2026],
+    ["2026-01-01", 1, 2026], ["2025-12-29", 1, 2026], ["2027-01-01", 53, 2026], ["2027-01-04", 1, 2027],
+    ["2024-12-30", 1, 2025], ["2021-01-03", 53, 2020],
+  ])("%s er uke %i i %i", (dato, uke, aar) => {
+    expect(isoUke(dato)).toEqual({ uke, aar });
   });
 });
 
